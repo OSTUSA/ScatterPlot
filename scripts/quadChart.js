@@ -69,7 +69,7 @@ var QuadChart = {
 					Max:         desc.Chart.xAxes.max || 100,
 					LineColor:   desc.Chart.xAxes.lineColor || '#000',
 					TextColor:   desc.Chart.xAxes.textColor || '#000',
-					TickInterval:desc.Chart.xAxes.tickInterval || 10,
+					TickInterval:desc.Chart.xAxes.tickInterval || 20,
 					TickLength:  desc.Chart.xAxes.tickLength || 3 			
 				},
 				Y: {
@@ -79,7 +79,7 @@ var QuadChart = {
 					Max:         desc.Chart.yAxes.max || 100,
 					LineColor:   desc.Chart.yAxes.lineColor || '#000',
 					TextColor:   desc.Chart.yAxes.textColor || '#000',
-					TickInterval:desc.Chart.yAxes.tickInterval || 10,
+					TickInterval:desc.Chart.yAxes.tickInterval || 20,
 					TickLength:  desc.Chart.yAxes.tickLength || 3 			
 				}
 			};
@@ -101,9 +101,9 @@ var QuadChart = {
 						return s;
 					}
 
-					cvs.setViewBox(cd.X(0), cd.Y(0), cd.S(cvs.width), cd.S(cvs.height), false);
-					Y.cvs.setViewBox(0, cd.Y(0), Y.cvs.width, cd.S(Y.cvs.height), false);
-					X.cvs.setViewBox(cd.X(0), 0, cd.S(X.cvs.width), X.cvs.height, false);
+					cvs.setViewBox(cd.X(0, cvs), cd.Y(0, cvs), cd.S(cvs.width), cd.S(cvs.height), false);
+					Y.cvs.setViewBox(0, cd.Y(0, Y.cvs), Y.cvs.width, cd.S(Y.cvs.height), false);
+					X.cvs.setViewBox(cd.X(0, X.cvs), 0, cd.S(X.cvs.width), X.cvs.height, false);
 				
 					for(var i = Y.cvs.Ticks.length; i--;){
 						var t = Y.cvs.Ticks[i], r = t.R;
@@ -146,16 +146,23 @@ var QuadChart = {
 				return null;
 			}
 
+			chart.Parent = cvs;
+			var rx = 0, ry = 0;
+			var raphCvs = chart.Canvas = Raphael(
+				cvs,
+				rx = (cvs.clientWidth  - 280),
+				ry = (cvs.clientHeight - 120)
+			);
+			raphCvs.Top = ry; raphCvs.Left = rx;
+			raphCvs.canvas.style.position = 'absolute';
+			raphCvs.canvas.style.top = '0px';//-cvs.clientHeight + 'px';
+			raphCvs.canvas.style.left = '120px';
+
 			// create the background axes titles
 			var border = 5;
-			QuadChart.RenderBackground(cvs, chart, border);
+			var bg = QuadChart.RenderBackground(cvs, chart, border);
 
-			var raphCvs = chart.Canvas = Raphael(
-				cvs.offsetLeft,
-				cvs.offsetTop,
-				cvs.offsetWidth,
-				cvs.offsetHeight
-			);
+
 			raphCvs.canvas.style.borderBottom = border + 'px solid ' + chart.Axes.X.LineColor;
 			raphCvs.canvas.style.borderLeft = border + 'px solid ' + chart.Axes.Y.LineColor;
 			cvs.Cvs = raphCvs;
@@ -181,49 +188,60 @@ var QuadChart = {
 	},
 	RenderBackground: function(cvs, cd, border){
 		var back = Raphael(
-			cvs.offsetLeft - 120,
-			cvs.offsetTop,
-			cvs.offsetWidth + 300,
-			cvs.offsetHeight + 100 + border
+			cvs,
+			cvs.offsetWidth,
+			cvs.offsetHeight
 		);
+		//back.style.position = 'absolute';
+
+		// white bg
 		back.rect(0, 0,
-			cvs.offsetWidth + 300,
-			cvs.offsetHeight + 100 + border)
+			cvs.offsetWidth,
+			cvs.offsetHeight)
 			.attr('stroke-width', 0)
 		    .attr('fill', '#fff');
+
+		// y axis title   
 		back.text(30, cvs.offsetHeight >> 1, cd.Axes.Y.Title)
     		.attr('fill', '#a1c800')
     		.attr('font-size', 20)
 		    .transform('r-90');
-		back.text((cvs.offsetWidth >> 1) + 120, cvs.offsetHeight + 80 + border, cd.Axes.X.Title)
+
+		// x axis title
+		back.text((cvs.offsetWidth >> 1), cvs.offsetHeight - 30, cd.Axes.X.Title)
     		.attr('fill', '#a1c800')
     		.attr('font-size', 20);
-    	back.rect(cvs.offsetWidth + 150, 0, 120, 2)
+
+    	// key
+    	var off = 125;
+    	back.rect(cvs.offsetWidth - off, 0, 120, 2)
     		.attr('stroke-width', 0)
     	    .attr('fill', cd.Axes.X.LineColor);
-    	back.text(cvs.offsetWidth + 150, 15, 'Key')
+    	back.text(cvs.offsetWidth - off, 15, 'Key')
     		.attr('font-size', 16)
     	    .attr('text-anchor', 'start');
-    	back.rect(cvs.offsetWidth + 150, 30, 120, 2)
+    	back.rect(cvs.offsetWidth - off, 30, 120, 2)
     		.attr('stroke-width', 0)
     	    .attr('fill', cd.Axes.X.LineColor);
 
-    	back.rect(cvs.offsetWidth + 151, 44, 12, 12)
+    	back.rect(cvs.offsetWidth - (off + 1), 44, 12, 12)
 			.attr('fill', '#bbbbbb')
         	.attr('stroke', '#ececfb')
 			.attr('stroke-width', '3');
-		back.text(cvs.offsetWidth + 174, 50, 'Outlying')
+		back.text(cvs.offsetWidth - (off - 25), 50, 'Outlying')
 				.attr('font-size', 14)
 			    .attr('text-anchor', 'start');	
 		for(var i = cd.Props.Quadrants.length; i--;){
 			var q = cd.Props.Quadrants[i];
-			var pos = {X:cvs.offsetWidth + 157,Y:(i*30) + 80};
+			var pos = {X:cvs.offsetWidth - (off - 5),Y:(i*30) + 80};
 			q.RenderPoint(back, pos).attr('r', 6);
 			back.text(pos.X + 20, pos.Y, cd.Props.Quadrants[i].Text)
 				.attr('font-size', 14)
 			    .attr('text-anchor', 'start');
 
 		}
+
+		return back;
 	},
 	ClearInfoBox: function(){
 		if(QuadChart.InfoBox.length){
@@ -532,15 +550,27 @@ var QuadChart = {
 		var X = chartData.Axes.X;
 		var Y = chartData.Axes.Y;
 
-		var cd = chartData;
-		var cvs   = cd.Canvas.canvas;
-		
-		var top = cvs.offsetTop, left = cvs.offsetLeft;
-		var w = cvs.offsetWidth, h = cvs.offsetHeight;
+		var cd  = chartData;
+		var cvs = cd.Canvas.canvas;
+		var par = cd.Parent;
+
+		var top = cvs.offsetTop, left = cvs.clientLeft;
+		var w = cvs.offsetWidth, h = cvs.clientHeight;
 
 		// create the x, and y axis canvases
-		var yc = Y.cvs = Raphael(left - 60, top, 60, h);
-		var xc = X.cvs = Raphael(left, top + h, w, 60);
+		var yc = Y.cvs = Raphael(par, 60, h);
+		var xc = X.cvs = Raphael(par, w, 60);
+
+		yc.canvas.style.position = 'absolute';
+		yc.canvas.style.zIndex = 1000;
+		yc.canvas.style.left  = '60px';
+		yc.canvas.style.top = '0px';//(cd.Canvas.Top + 5) + 'px';
+
+		xc.canvas.style.position = 'absolute';
+		xc.canvas.style.zIndex = 1000;
+		xc.canvas.style.left  = '120px';
+		xc.canvas.style.top = cvs.clientHeight + 'px';
+
 		var dx = Math.ceil(X.Max - X.Min), dy = Math.ceil(Y.Max - Y.Min);
 
 		// create arrays to hold the tick labels
@@ -601,8 +631,11 @@ var QuadChart = {
 		var cvs   = cd.Canvas;
 		var v     = cd.View;		
 
-		var w = Math.abs(axes.X.Max - axes.X.Min) << 1, 
-		    h = Math.abs(axes.Y.Max - axes.Y.Min) << 1;
+		var dw = Math.abs(axes.X.Max - axes.X.Min); dw = dw < cvs.width ? cvs.width : dw;
+		var dh = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < cvs.height ? cvs.height : dh;
+
+		var w = (dw >> 1), 
+		    h = (dh >> 1);
 
 		var goHome = function(){
 

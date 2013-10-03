@@ -5,11 +5,10 @@
 	</head>
 
 	<body style="background:#fff">
-		<center>
-		<div id="quadChart" style="width:800px;height:400px;">
+
+		<div id="quadChart" style="position:relative;left:50%;width:1000px;height:800px;margin-left:-400px">
 
 		</div>
-	</center>
 		<script type="text/javascript">
 			// TODO
 			/*
@@ -32,7 +31,7 @@
 				info.push(cvs.path(tri + rectangle + 'Z')
 				             .attr('fill', '#000')
 				             .attr('font-weight', 'bold')
-				             .attr('opacity', '0.5')
+				             .attr('opacity', 0.5)
 				             .transform('M' + s + ',0, 0,' + s + ',' + di.X + ',' + di.Y)
 				);
 
@@ -151,7 +150,7 @@
 					renderTo: 'quadChart',
 					borderColor: '#ececfb',
 					borderWidth: 3,
-					dataSet: bsData(100, -100, 100, -100, 100),
+					dataSet: bsData(50, -100, 100, -100, 100),
 					xAxes: {
 						title: 'Utilization',
 						lineColor: '#e2e2e2',
