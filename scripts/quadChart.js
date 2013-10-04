@@ -169,14 +169,14 @@ var QuadChart = {
 
 			// setup some view-dependent coordinate calculation functions
 			chart.X = function(x, c){
-				var cv = (c ? c.canvas : null) || cvs;
+				var cv = c || cvs;
 				var dx = (x - view.Xoffset);
-				return (-(cv.clientWidth >> 1) / view.Zoom) - dx;	
+				return (-(cv.width >> 1) / view.Zoom) - dx;	
 			};
 			chart.Y = function(y, c){
-				var cv = (c ? c.canvas : null) || cvs;
+				var cv = c || cvs;
 				var dy = (y - view.Yoffset);
-				return (-(cv.clientHeight >> 1) / view.Zoom) - dy;	
+				return (-(cv.height >> 1) / view.Zoom) - dy;	
 			};
 			chart.S = function(s){
 				return s / view.Zoom;
@@ -189,51 +189,52 @@ var QuadChart = {
 	RenderBackground: function(cvs, cd, border){
 		var back = Raphael(
 			cvs,
-			cvs.offsetWidth,
-			cvs.offsetHeight
+			cvs.clientWidth,
+			cvs.clientHeight
 		);
 		//back.style.position = 'absolute';
 
 		// white bg
 		back.rect(0, 0,
-			cvs.offsetWidth,
-			cvs.offsetHeight)
+			cvs.clientWidth,
+			cvs.clientHeight)
 			.attr('stroke-width', 0)
 		    .attr('fill', '#fff');
+		back.canvas.style.zIndex = 0;
 
 		// y axis title   
-		back.text(30, cvs.offsetHeight >> 1, cd.Axes.Y.Title)
+		back.text(30, cvs.clientHeight >> 1, cd.Axes.Y.Title)
     		.attr('fill', '#a1c800')
     		.attr('font-size', 20)
 		    .transform('r-90');
 
 		// x axis title
-		back.text((cvs.offsetWidth >> 1), cvs.offsetHeight - 30, cd.Axes.X.Title)
+		back.text((cvs.clientWidth >> 1), cvs.clientHeight - 30, cd.Axes.X.Title)
     		.attr('fill', '#a1c800')
     		.attr('font-size', 20);
 
     	// key
     	var off = 125;
-    	back.rect(cvs.offsetWidth - off, 0, 120, 2)
+    	back.rect(cvs.clientWidth - off, 0, 120, 2)
     		.attr('stroke-width', 0)
     	    .attr('fill', cd.Axes.X.LineColor);
-    	back.text(cvs.offsetWidth - off, 15, 'Key')
+    	back.text(cvs.clientWidth - off, 15, 'Key')
     		.attr('font-size', 16)
     	    .attr('text-anchor', 'start');
-    	back.rect(cvs.offsetWidth - off, 30, 120, 2)
+    	back.rect(cvs.clientWidth - off, 30, 120, 2)
     		.attr('stroke-width', 0)
     	    .attr('fill', cd.Axes.X.LineColor);
 
-    	back.rect(cvs.offsetWidth - (off + 1), 44, 12, 12)
+    	back.rect(cvs.clientWidth - (off + 1), 44, 12, 12)
 			.attr('fill', '#bbbbbb')
         	.attr('stroke', '#ececfb')
 			.attr('stroke-width', '3');
-		back.text(cvs.offsetWidth - (off - 25), 50, 'Outlying')
+		back.text(cvs.clientWidth - (off - 25), 50, 'Outlying')
 				.attr('font-size', 14)
 			    .attr('text-anchor', 'start');	
 		for(var i = cd.Props.Quadrants.length; i--;){
 			var q = cd.Props.Quadrants[i];
-			var pos = {X:cvs.offsetWidth - (off - 5),Y:(i*30) + 80};
+			var pos = {X:cvs.clientWidth - (off - 5),Y:(i*30) + 80};
 			q.RenderPoint(back, pos).attr('r', 6);
 			back.text(pos.X + 20, pos.Y, cd.Props.Quadrants[i].Text)
 				.attr('font-size', 14)
@@ -287,8 +288,6 @@ var QuadChart = {
 						// this data point is already part of a hood
 						// join that one instead
 						while(hoods[hoodId].length){
-							if(hoods[hoodId].length > 1)
-								var sdfsd = 0;
 							// move any neighbors to the new hood
 							var n = hoods[hoodId].pop();
 							n.Neighborhood = dj.Neighborhood;
@@ -320,21 +319,6 @@ var QuadChart = {
 		for(var i = hood.length; i--;){
 			var di = hood[i];
 			di.Element.attr('opacity', 1 - hood.Opacity);
-
-			if(hood.Opacity < 0.1){
-				di.Element[0].style.pointerEvents = 'auto';
-				hood.Elements.Shape[0].style.pointerEvents = 'none';
-				hood.Elements.Text[0].style.pointerEvents = 'none';
-				hood.Elements.Shape.hide();
-				hood.Elements.Text.hide();
-			}
-			else{
-				di.Element[0].style.pointerEvents = 'none';
-				hood.Elements.Shape[0].style.pointerEvents = 'auto';
-				hood.Elements.Text[0].style.pointerEvents = 'auto';
-				hood.Elements.Shape.show();
-				hood.Elements.Text.show();
-			}
 		}
 	},
 	RenderNeighborhoods: function(cvs, chartData, hoods){
@@ -439,15 +423,20 @@ var QuadChart = {
 				var zoom = 12 - hood.length;
 
 				// create the click event function
-	 			var click = function(){
+	 			var click = function(e){
 					var hood = this.Hood;
 					var oldHood = QuadChart.SelectedHood;
 					QuadChart.ClearInfoBox();
 
 					if(oldHood)
 						oldHood.Unfocus(oldHood);
-					hood.Focus(hood);
-					QuadChart.SelectedHood = hood;
+					
+					if(oldHood != hood){
+						hood.Focus(hood);
+						QuadChart.SelectedHood = hood;
+					}	
+					else
+						QuadChart.goHome();
 				};
 
 				// assign click events
@@ -484,15 +473,25 @@ var QuadChart = {
 
 					if(di.Neighborhood >= 0){
 						ele.attr('opacity', '0.0');
-						ele[0].style.pointerEvents = 'none';
+						//ele[0].style.pointerEvents = 'none';
 						di.Element = ele;
 
-				   		ele.click(function(){
+				   		ele.click(function(e){
 							var x = this.X - 40, y = this.Y, di = this.di;
+							var hood = this.di.Neighborhood;
+
+							if(hood >= 0){
+								var myHood = QuadChart.Hoods[hood];
+								if(myHood.Opacity > 0.5){
+									myHood.Elements.Shape.events[0].Hood = myHood;
+									myHood.Elements.Shape.events[0].f(e);
+									return;
+								}
+							}
+
 							var qc = QuadChart, info = qc.InfoBox;
 							QuadChart.ClearInfoBox();
 							renderInfo(cvs, v, QuadChart.InfoBox, di);
-
 						});
 					}
 					else{
@@ -551,11 +550,11 @@ var QuadChart = {
 		var Y = chartData.Axes.Y;
 
 		var cd  = chartData;
-		var cvs = cd.Canvas.canvas;
+		var cvs = cd.Canvas;//.canvas;
 		var par = cd.Parent;
 
-		var top = cvs.offsetTop, left = cvs.clientLeft;
-		var w = cvs.offsetWidth, h = cvs.clientHeight;
+		var top = cvs.Top, left = cvs.Left;
+		var w = cvs.width, h = cvs.height;
 
 		// create the x, and y axis canvases
 		var yc = Y.cvs = Raphael(par, 60, h);
@@ -569,7 +568,7 @@ var QuadChart = {
 		xc.canvas.style.position = 'absolute';
 		xc.canvas.style.zIndex = 1000;
 		xc.canvas.style.left  = '120px';
-		xc.canvas.style.top = cvs.clientHeight + 'px';
+		xc.canvas.style.top = cvs.height + 4 + 'px';
 
 		var dx = Math.ceil(X.Max - X.Min), dy = Math.ceil(Y.Max - Y.Min);
 
@@ -637,7 +636,7 @@ var QuadChart = {
 		var w = (dw >> 1), 
 		    h = (dh >> 1);
 
-		var goHome = function(){
+		var goHome = QuadChart.goHome = function(){
 
 			QuadChart.Anims.ClearAll();
 
