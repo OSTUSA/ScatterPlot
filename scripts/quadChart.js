@@ -57,6 +57,14 @@ var QuadChart = {
 				});
 			}
 
+			// some raphael init/assignment
+			var cvs = doc.getElementById(desc.Chart.renderTo);
+			if(!cvs){
+				err('Specified target element not found');
+				return null;
+			}
+			chart.Parent = cvs;
+
 			// setup axes
 			if(!desc.Chart.xAxes || !desc.Chart.yAxes){
 				err('Axes are null');
@@ -137,35 +145,6 @@ var QuadChart = {
 			}
 			chart.Axes.X.Min = mx; chart.Axes.X.Max = Mx;
 			chart.Axes.Y.Min = my; chart.Axes.Y.Max = My;
-
-
-			// some raphael init/assignment
-			var cvs = doc.getElementById(desc.Chart.renderTo);
-			if(!cvs){
-				err('Specified target element not found');
-				return null;
-			}
-
-			chart.Parent = cvs;
-			var rx = 0, ry = 0;
-			var raphCvs = chart.Canvas = Raphael(
-				cvs,
-				rx = (cvs.clientWidth  - 280),
-				ry = (cvs.clientHeight - 120)
-			);
-			raphCvs.Top = ry; raphCvs.Left = rx;
-			raphCvs.canvas.style.position = 'absolute';
-			raphCvs.canvas.style.top = '0px';//-cvs.clientHeight + 'px';
-			raphCvs.canvas.style.left = '120px';
-
-			// create the background axes titles
-			var border = 5;
-			var bg = QuadChart.RenderBackground(cvs, chart, border);
-
-
-			raphCvs.canvas.style.borderBottom = border + 'px solid ' + chart.Axes.X.LineColor;
-			raphCvs.canvas.style.borderLeft = border + 'px solid ' + chart.Axes.Y.LineColor;
-			cvs.Cvs = raphCvs;
 
 			// setup some view-dependent coordinate calculation functions
 			chart.X = function(x, c){
@@ -628,14 +607,15 @@ var QuadChart = {
 		var props = cd.Props;
 		var axes  = cd.Axes;
 		var cvs   = cd.Canvas;
+		var par   = cd.Parent;
 		var v     = cd.View;		
 
-		var dw = Math.abs(axes.X.Max - axes.X.Min); dw = dw < cvs.width ? cvs.width : dw;
-		var dh = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < cvs.height ? cvs.height : dh;
+		// determine neighborhoods
+		var hoods = QuadChart.DetermineNeighborhoods(cd);
+		QuadChart.Hoods = hoods;
 
-		var w = (dw >> 1), 
-		    h = (dh >> 1);
-
+		// animation that returns the camera to the
+		// center of the chart
 		var goHome = QuadChart.goHome = function(){
 
 			QuadChart.Anims.ClearAll();
@@ -657,6 +637,62 @@ var QuadChart = {
 			}, 16);
 		}
 
+		par.LastWidth = par.clientWidth;
+		par.LastHeight = par.clientHeight;
+		var pid = par.id;
+		setInterval(function(){
+			var p = document.getElementById(pid);
+			if(p.LastHeight != p.clientHeight || p.LastWidth != p.clientWidth){
+				while(p.childNodes.length){
+					p.removeChild(p.childNodes[0]);
+				}
+
+				p.LastWidth = p.clientWidth;
+				p.LastHeight = p.clientHeight;
+
+				QuadChart.RenderChart(cd);	
+			}
+		}, 100);
+
+		// Create SVG elements
+		QuadChart.RenderChart(cd);
+	},
+	RenderChart: function(chartData){
+
+		var rx = 0, ry = 0;
+		var par = chartData.Parent;
+		var raphCvs = chartData.Canvas = Raphael(
+			par,
+			rx = (par.clientWidth  - 280),
+			ry = (par.clientHeight - 120)
+		);
+		raphCvs.Top = ry; raphCvs.Left = rx;
+		raphCvs.canvas.style.position = 'absolute';
+		raphCvs.canvas.style.top = '0px';//-cvs.clientHeight + 'px';
+		raphCvs.canvas.style.left = '120px';
+
+		// create the background axes titles
+		var border = 5;
+		var bg = QuadChart.RenderBackground(par, chartData, border);
+
+
+		raphCvs.canvas.style.borderBottom = border + 'px solid ' + chartData.Axes.X.LineColor;
+		raphCvs.canvas.style.borderLeft = border + 'px solid ' + chartData.Axes.Y.LineColor;
+		par.Cvs = raphCvs;
+
+		var cd = chartData;
+		var props = cd.Props;
+		var axes  = cd.Axes;
+		var cvs   = cd.Canvas;
+		var par   = cd.Parent;
+		var v     = cd.View;	
+
+		var dw = Math.abs(axes.X.Max - axes.X.Min); dw = dw < cvs.width ? cvs.width : dw;
+		var dh = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < cvs.height ? cvs.height : dh;
+
+		var w = (dw >> 1), 
+		    h = (dh >> 1);
+
 		props.Quadrants[0].q = cvs.rect(-w, -h, w, h);
 		props.Quadrants[1].q = cvs.rect(0, -h, w, h);
 		props.Quadrants[2].q = cvs.rect(0, 0, w, h);
@@ -667,33 +703,29 @@ var QuadChart = {
 			.attr('fill', props.Quadrants[i].Color)
 			.attr('stroke', props.Border.Color)
 			.attr('stroke-width', props.Border.Thickness)
-			.click(function(){QuadChart.ClearInfoBox();goHome();});
+			.click(function(){QuadChart.ClearInfoBox();QuadChart.goHome();});
 		}
 
 		var hw = w >> 3, hh = h >> 3;
 		cvs.text(-hw, -hh, props.Quadrants[0].Text)
-		   .click(goHome)
+		   .click(QuadChart.goHome)
 		   .attr('font-family', 'arial')
 		   .attr('fill', props.Quadrants[0].TextColor);
 		cvs.text(hw, -hh, props.Quadrants[1].Text)
-		   .click(goHome)
+		   .click(QuadChart.goHome)
 		   .attr('font-family', 'arial')
 		   .attr('fill', props.Quadrants[1].TextColor);
 		cvs.text(hw, hh, props.Quadrants[2].Text)
-		   .click(goHome)
+		   .click(QuadChart.goHome)
 		   .attr('font-family', 'arial')
 		   .attr('fill', props.Quadrants[2].TextColor);
 		cvs.text(-hw, hh, props.Quadrants[3].Text)
-		   .click(goHome)
+		   .click(QuadChart.goHome)
 		   .attr('font-family', 'arial')
 		   .attr('fill', props.Quadrants[3].TextColor);
 
-		// determine neighborhoods
-		var hoods = QuadChart.DetermineNeighborhoods(cd);
-		QuadChart.Hoods = hoods;
-
 		// render neighborhoods
-		QuadChart.RenderNeighborhoods(cvs, cd, hoods);	
+		QuadChart.RenderNeighborhoods(cvs, cd, QuadChart.Hoods);	
 
 		// render lone data points
 		QuadChart.RenderDatapoints(cvs, cd);
