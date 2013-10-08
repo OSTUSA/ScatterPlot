@@ -95,12 +95,13 @@ var QuadChart = {
 			var view = chart.View = {
 				Xoffset: 0,
 				Yoffset: 0,
+				BaseZoom: 1,
 				Zoom: 3,
 				Update: function(){
 					var cd = chart, cvs = cd.Canvas;
 					var X = cd.Axes.X, Y = cd.Axes.Y;
 					var sin = Math.sin, cos = Math.cos;
-					var s = 2 / this.Zoom;
+					var s = 2 / (this.Zoom);
 					var matrix = function(data){
 						var s = '';
 						for(var ei = data.length; ei--;){
@@ -230,7 +231,7 @@ var QuadChart = {
 		}
 	},
 	DetermineNeighborhoods: function(cd){
-		var threshhold = Math.pow(10, 2);
+		var threshhold = Math.pow(5, 2);
 		var hoods = [];
 
 		// functions used for calculating the average
@@ -349,7 +350,7 @@ var QuadChart = {
 
 				var id = hood.AnimID = QuadChart.Anims.setInterval(function(){
 					// perform the panning calculations
-					var dx = 0, dy = 0;
+					var dx = 0, dy = 0, r = hood.Radius, zoom = r <= 2 ? 3 : (r > 10 ? 10 : r) + v.BaseZoom;
 					v.Xoffset += (dx = (x - v.Xoffset)) / 10;
 					v.Yoffset += (dy = (y - v.Yoffset)) / 10;
 
@@ -489,7 +490,7 @@ var QuadChart = {
 								var dx = 0, dy = 0;
 								v.Xoffset += (dx = (x - v.Xoffset)) / 10;
 								v.Yoffset += (dy = (y - v.Yoffset)) / 10;
-								v.Zoom    += (3 - v.Zoom) / 10;
+								v.Zoom    += (v.BaseZoom - v.Zoom) / 10;
 								v.Update();
 
 
@@ -583,7 +584,7 @@ var QuadChart = {
 		yc.Scale = yc.path(yScale)
 		             .attr('stroke', Y.LineColor);
 
-		for(var i = Math.ceil(dx / X.TickInterval); i--;){
+		for(var i = Math.ceil(dx / X.TickInterval) + 1; i--;){
 			var x = X.Min + i * X.TickInterval;
 			xScale += 'M' + x + ',5';
 			xScale += 'l0,15';
@@ -624,10 +625,10 @@ var QuadChart = {
 			QuadChart.SelectedHood.Unfocus(QuadChart.SelectedHood);
 
 			var transID = QuadChart.Anims.setInterval(function(){
-				var dx = 0, dy = 0, x = 0, y = 0;
+				var dx = 0, dy = 0, x = (axes.X.Min + axes.X.Max) / 2, y = (axes.Y.Min + axes.Y.Max) / 2;
 				v.Xoffset += (dx = (x - v.Xoffset)) / 10;
 				v.Yoffset += (dy = (y - v.Yoffset)) / 10;
-				v.Zoom    += (3 - v.Zoom) / 10;
+				v.Zoom    += (v.BaseZoom - v.Zoom) / 10;
 				v.Update();
 
 				if(dx * dx + dy * dy < 0.01){
@@ -687,16 +688,33 @@ var QuadChart = {
 		var par   = cd.Parent;
 		var v     = cd.View;	
 
-		var dw = Math.abs(axes.X.Max - axes.X.Min); dw = dw < cvs.width ? cvs.width : dw;
-		var dh = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < cvs.height ? cvs.height : dh;
+		var w, h;
+		var dw = w = Math.abs(axes.X.Max - axes.X.Min); dw = dw < cvs.width ? cvs.width   : dw;
+		var dh = h = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < cvs.height ? cvs.height : dh;
+
+		var cx = (axes.X.Max + axes.X.Min) / 2;
+		var cy = (axes.Y.Max + axes.Y.Min) / 2;
+
+		var sf = w > h ? w : h;
+
+		if(Math.abs(w - dw) < Math.abs(h - dh)){
+			v.BaseZoom = cvs.width / (sf + 30);
+		}
+		else{
+			v.BaseZoom = cvs.height / (sf + 30);
+		} v.Zoom = v.BaseZoom;
+
+
+		v.Xoffset = cx;
+		v.Yoffset = cy;
 
 		var w = (dw >> 1), 
 		    h = (dh >> 1);
 
-		props.Quadrants[0].q = cvs.rect(-w, -h, w, h);
-		props.Quadrants[1].q = cvs.rect(0, -h, w, h);
-		props.Quadrants[2].q = cvs.rect(0, 0, w, h);
-		props.Quadrants[3].q = cvs.rect(-w, 0, w, h);
+		props.Quadrants[0].q = cvs.rect(-w + cx, -h + cy, w, h);
+		props.Quadrants[1].q = cvs.rect(cx, -h + cy, w, h);
+		props.Quadrants[2].q = cvs.rect(cx, cy, w, h);
+		props.Quadrants[3].q = cvs.rect(-w + cx, cy, w, h);
 
 		for(var i = 4; i--;){
 			props.Quadrants[i].q
@@ -707,19 +725,19 @@ var QuadChart = {
 		}
 
 		var hw = w >> 3, hh = h >> 3;
-		cvs.text(-hw, -hh, props.Quadrants[0].Text)
+		cvs.text(-hw + cx, -hh + cy, props.Quadrants[0].Text)
 		   .click(QuadChart.goHome)
 		   .attr('font-family', 'arial')
 		   .attr('fill', props.Quadrants[0].TextColor);
-		cvs.text(hw, -hh, props.Quadrants[1].Text)
+		cvs.text(hw + cx, -hh + cy, props.Quadrants[1].Text)
 		   .click(QuadChart.goHome)
 		   .attr('font-family', 'arial')
 		   .attr('fill', props.Quadrants[1].TextColor);
-		cvs.text(hw, hh, props.Quadrants[2].Text)
+		cvs.text(hw + cx, hh + cy, props.Quadrants[2].Text)
 		   .click(QuadChart.goHome)
 		   .attr('font-family', 'arial')
 		   .attr('fill', props.Quadrants[2].TextColor);
-		cvs.text(-hw, hh, props.Quadrants[3].Text)
+		cvs.text(-hw + cx, hh + cy, props.Quadrants[3].Text)
 		   .click(QuadChart.goHome)
 		   .attr('font-family', 'arial')
 		   .attr('fill', props.Quadrants[3].TextColor);
