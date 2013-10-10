@@ -3,6 +3,7 @@ var QuadChart = {
 	Hoods: [],
 	InfoBox: [],
 	Anims: [],
+	AnimationSpeed: 2.5,
 	Chart: function(description){
 		var chart = {}, desc = description, doc = document;
 		var err = function(str){ console.log('Error: ' + str); };
@@ -342,7 +343,7 @@ var QuadChart = {
 				// stop any running animation
 				QuadChart.Anims.ClearAll();
 
-				var x = hood.X, y = hood.Y;
+				var x = hood.X, y = hood.Y, speed = QuadChart.AnimationSpeed;
 				var oldHood = QuadChart.SelectedHood;
 
 				if(oldHood)
@@ -351,17 +352,18 @@ var QuadChart = {
 				var id = hood.AnimID = QuadChart.Anims.setInterval(function(){
 					// perform the panning calculations
 					var dx = 0, dy = 0, r = hood.Radius, zoom = r <= 2 ? 3 : (r > 10 ? 10 : r) + v.BaseZoom;
-					v.Xoffset += (dx = (x - v.Xoffset)) / 10;
-					v.Yoffset += (dy = (y - v.Yoffset)) / 10;
+					
+					v.Xoffset += (dx = (x - v.Xoffset)) / speed;
+					v.Yoffset += (dy = (y - v.Yoffset)) / speed;
 
 					// smooth interpolation for zoom
-					v.Zoom += (zoom - v.Zoom) / 10;
+					v.Zoom += (zoom - v.Zoom) / speed;
 
 					// update the camera
 					v.Update();
 
 					// Update the opacity of the datapoints and hood
-					hood.Opacity += (0 - hood.Opacity) / 10;
+					hood.Opacity += (0 - hood.Opacity) / speed;
 					QuadChart.UpdateNeighborhoodFocus(hood);
 
 					// end animation when the opacity is near the target
@@ -376,14 +378,14 @@ var QuadChart = {
 			};
 			hood.Unfocus = function(hood){
 				QuadChart.ClearInfoBox();
-				
+				var speed = QuadChart.AnimationSpeed;
 				// stop any running animation
 				// if(hood.AnimID > 0)
 				// 	clearInterval(hood.AnimID);
 
 				var oldFadeID = hood.AnimID = setInterval(function(){
 					// Update the opacity of the datapoints and hood
-					hood.Opacity += (1 - hood.Opacity) / 10;
+					hood.Opacity += (1 - hood.Opacity) / speed;
 					QuadChart.UpdateNeighborhoodFocus(hood);
 
 					if(hood.Opacity > 0.99){
@@ -488,9 +490,10 @@ var QuadChart = {
 
 							var transID = QuadChart.Anims.setInterval(function(){
 								var dx = 0, dy = 0;
-								v.Xoffset += (dx = (x - v.Xoffset)) / 10;
-								v.Yoffset += (dy = (y - v.Yoffset)) / 10;
-								v.Zoom    += (v.BaseZoom - v.Zoom) / 10;
+								var speed = QuadChart.AnimationSpeed;
+								v.Xoffset += (dx = (x - v.Xoffset)) / speed;
+								v.Yoffset += (dy = (y - v.Yoffset)) / speed;
+								v.Zoom    += (v.BaseZoom - v.Zoom) / speed;
 								v.Update();
 
 
@@ -505,9 +508,9 @@ var QuadChart = {
 							QuadChart.Anims.ClearAll();
 							var transID = QuadChart.Anims.setInterval(function(){
 								var dx = 0, dy = 0, dz = 0;
-								v.Xoffset += (dx = (x - v.Xoffset)) / 10;
-								v.Yoffset += (dy = (y - v.Yoffset)) / 10;
-								v.Zoom    += (dz = (10 - v.Zoom)) / 10;
+								v.Xoffset += (dx = (x - v.Xoffset)) / speed;
+								v.Yoffset += (dy = (y - v.Yoffset)) / speed;
+								v.Zoom    += (dz = (10 - v.Zoom)) / speed;
 								v.Update();
 
 
@@ -625,10 +628,11 @@ var QuadChart = {
 			QuadChart.SelectedHood.Unfocus(QuadChart.SelectedHood);
 
 			var transID = QuadChart.Anims.setInterval(function(){
+				var speed = QuadChart.AnimationSpeed;
 				var dx = 0, dy = 0, x = (axes.X.Min + axes.X.Max) / 2, y = (axes.Y.Min + axes.Y.Max) / 2;
-				v.Xoffset += (dx = (x - v.Xoffset)) / 10;
-				v.Yoffset += (dy = (y - v.Yoffset)) / 10;
-				v.Zoom    += (v.BaseZoom - v.Zoom) / 10;
+				v.Xoffset += (dx = (x - v.Xoffset)) / speed;
+				v.Yoffset += (dy = (y - v.Yoffset)) / speed;
+				v.Zoom    += (v.BaseZoom - v.Zoom) / speed;
 				v.Update();
 
 				if(dx * dx + dy * dy < 0.01){
