@@ -2,6 +2,7 @@
 	<head>
 		<script type="text/javascript" src="scripts/raphael.min.js"></script>
 		<script type="text/javascript" src="scripts/quadChart.js"></script>
+		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.min.js"></script>
 	</head>
 
 	<body style="background:#fff">
@@ -145,7 +146,7 @@
 				             .attr('fill', '#f00');
 			}
 
-			QuadChart.Chart({
+			var chart = new QuadChart.Chart({
 				Chart: {
 					renderTo: 'quadChart',
 					borderColor: '#ececfb',
