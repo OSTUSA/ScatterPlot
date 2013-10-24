@@ -3,14 +3,23 @@ QuadChart.Chart = function(description){
 	var chart = this;
 
 	chart.SelectedHood = null;
-	chart.Hoods = [];
 	chart.InfoBox = [];
 	chart.Anims = [];
-	chart.AnimationSpeed = 2.5;
-	chart.DataSet = description.Chart.dataSet;
 	chart.Description = description;
 	chart.Axes = {};
 	chart.View = {};
+	
+	chart.Data = {
+		Hoods: [],
+		DataSet: description.Chart.dataSet,
+		SpaceTable: new SpatialTable(5)
+	}
+
+	// Data Getters
+	chart.GetHoods   = function(){ return chart.Data.Hoods; };
+	chart.GetDataSet = function(){ return chart.Data.DataSet; };
+	chart.GetSpace   = function(){ return chart.Data.SpaceTable; };
+
 
 	var desc = description, doc = document;
 	var err = function(str){ console.log('Error: ' + str); };
@@ -26,7 +35,7 @@ QuadChart.Chart = function(description){
 		return null;
 	}
 	else{
-		// margins and borders
+		// margins, borders and other properties
 		chart.Props = {
 			Border: {
 				Thickness: desc.Chart.borderWidth || 1,
@@ -38,7 +47,9 @@ QuadChart.Chart = function(description){
 				Top:    desc.Chart.marginTop || 16,
 				Bottom: desc.Chart.marginBottom || 16	
 			},
-			Quadrants: []
+			Quadrants: [],
+			HoodRadius: 5,
+			AnimationSpeed: 2.5
 		};
 
 		// populate the quadrants array
@@ -122,10 +133,11 @@ QuadChart.Chart = function(description){
 
 		// Dynamically determine axes
 		var mx, Mx, my, My;
-		mx = Mx = chart.DataSet[0].X;
-		my = My = chart.DataSet[0].Y;
-		for(var i = chart.DataSet.length; i--;){
-			var di = chart.DataSet[i];
+		var dataSet = chart.GetDataSet();
+		mx = Mx = dataSet[0].X;
+		my = My = dataSet[0].Y;
+		for(var i = dataSet.length; i--;){
+			var di = dataSet[i];
 			mx = di.X < mx ? di.X : mx;
 			Mx = di.X > Mx ? di.X : Mx;
 			my = di.Y < my ? di.Y : my;
@@ -149,12 +161,12 @@ QuadChart.Chart = function(description){
 			return s / view.Zoom;
 		}	
 
-
-		// determine neighborhoods
-		chart.Hoods = QuadChart.DetermineNeighborhoods(chart);
-
 		// Create SVG elements
 		QuadChart.RenderChart(chart);
+
+		// determine neighborhoods
+		var hoods = chart.GetHoods();
+		hoods = QuadChart.DetermineNeighborhoods(chart);
 
 		// register animation handlers a
 		QuadChart.SetupAnimation(chart);

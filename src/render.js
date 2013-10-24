@@ -64,6 +64,7 @@ QuadChart.RenderChart = function(chart){
 	var w = (dw >> 1), 
 	    h = (dh >> 1);
 
+	// render quadrands
 	props.Quadrants[0].q = raphCvs.rect(-w + cx, -h + cy, w, h);
 	props.Quadrants[1].q = raphCvs.rect(cx, -h + cy, w, h);
 	props.Quadrants[2].q = raphCvs.rect(cx, cy, w, h);
@@ -94,15 +95,15 @@ QuadChart.RenderChart = function(chart){
 	   .click(chart.goHome)
 	   .attr('font-family', 'arial')
 	   .attr('fill', props.Quadrants[3].TextColor);
-
-	// render neighborhoods
-	QuadChart.RenderNeighborhoods(chart);	
-
-	// render lone data points
-	QuadChart.RenderDatapoints(chart);
-
 	// render chart axes
 	QuadChart.RenderAxes(chart);
+
+	// render neighborhoods
+	//QuadChart.RenderNeighborhoods(chart);	
+
+	// render lone data points
+	//QuadChart.RenderDatapoints(chart);
+
 
 	v.Update();
 

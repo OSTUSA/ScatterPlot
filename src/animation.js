@@ -27,7 +27,7 @@ QuadChart.SetupAnimation = function(chart){
 		chart.SelectedHood.Unfocus(chart.SelectedHood);
 
 		var transID = chart.Anims.setInterval(function(){
-			var speed = chart.AnimationSpeed;
+			var speed = chart.Props.AnimationSpeed;
 			var dx = 0, dy = 0, x = (axes.X.Min + axes.X.Max) / 2, y = (axes.Y.Min + axes.Y.Max) / 2;
 			v.Xoffset += (dx = (x - v.Xoffset)) / speed;
 			v.Yoffset += (dy = (y - v.Yoffset)) / speed;

@@ -106,19 +106,19 @@
 				var shape = null;
 
 				if(isSquare){
-					var x = datapoints.X, y = datapoints.Y, r = 5;
+					var x = datapoints.X(), y = datapoints.Y(), r = 5;
 					shape = cvs.rect(x - r, y - r, r * 2, r * 2)
 						.attr('fill', '#bbbbbb')
 	                	.attr('stroke', '#ececfb')
 						.attr('stroke-width', '3');
 				}
 				else{
-					shape = cvs.circle(datapoints.X,datapoints.Y,datapoints.Radius)
+					shape = cvs.circle(datapoints.X(),datapoints.Y(),datapoints.Radius)
 						.attr('fill', color)
 	                	.attr('stroke', '#ececfb')
 						.attr('stroke-width', '3');
 				}
-				var txt = cvs.text(datapoints.X, datapoints.Y, datapoints.length + '')
+				var txt = cvs.text(datapoints.X(), datapoints.Y(), datapoints.length + '')
 					.attr('stroke', '#ffffff')
 					.attr('stroke-width', '1')
 					.attr('fill', '#ffffff');
