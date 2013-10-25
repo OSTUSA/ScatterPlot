@@ -48,7 +48,7 @@ QuadChart.Chart = function(description){
 				Bottom: desc.Chart.marginBottom || 16	
 			},
 			Quadrants: [],
-			HoodRadius: 5,
+			HoodRadius: 7,
 			AnimationSpeed: 2.5
 		};
 

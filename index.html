@@ -151,7 +151,7 @@
 					renderTo: 'quadChart',
 					borderColor: '#ececfb',
 					borderWidth: 3,
-					dataSet: bsData(100, 0, 100, 0, 100),
+					dataSet: bsData(3, 0, 100, 0, 100),
 					xAxes: {
 						title: 'Utilization',
 						lineColor: '#e2e2e2',
@@ -230,6 +230,11 @@
 					]
 				}
 			});
+
+			setInterval(function(){
+				QuadChart.AddDataPoints(chart, bsData(1, 0, 100, 0, 100))
+			}, 500);
+
 		</script>
 	</body>
 </html>

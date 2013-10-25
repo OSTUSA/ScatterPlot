@@ -167,64 +167,6 @@ QuadChart.DetermineNeighborhoods = function(chart){
 	var dataSet = chart.GetDataSet();
 
 	QuadChart.AddDataPoints(chart, null);
-/*
-	var dataSet = chart.GetDataSet();
-	for(var i = 0; i < dataSet.length; i++){
-		var di = dataSet[i];
-
-		// Create a new hood if, the datapoint does not
-		// belong to one.
-		if(di.Neighborhood < 0){
-			var newHood = [di];
-			// functions used for calculating the average
-			// center of a neighborhood
-			newHood.X = function(){
-				var sum = 0;
-				for(var n = this.length; n--; sum += this[n].X);
-				return (sum / this.length);
-			};
-			newHood.Y = function(){
-				var sum = 0;
-				for(var n = this.length; n--; sum += this[n].Y);
-				return (sum / this.length);
-			};
-			newHood.Index = di.Neighborhood = hoods.push(newHood) - 1;
-		}
-
-		var hood = hoods[di.Neighborhood];
-		for(var j = 0; j < dataSet.length; j++){
-			var dj = dataSet[j];
-			if(dj.Neighborhood == di.Neighborhood) continue;
-			var dx = dj.X - hood.X(), dy = dj.Y - hood.Y();
-
-			if(dx * dx + dy * dy <= threshhold){
-				if(dj.Neighborhood > -1){
-					// this data point is already part of a hood
-					// join that one instead
-					while(hood.length){
-						// move any neighbors to the new hood
-						var n = hood.pop();
-						n.Neighborhood = dj.Neighborhood;
-						hoods[dj.Neighborhood].push(n);
-					}
-					//hoods.splice(hoods.indexOf(hoods[hoodId]), 1);
-					hood = hoods[di.Neighborhood];
-				}
-				else{	
-					dj.Neighborhood = di.Neighborhood
-					hood.push(dj);
-				}
-			}
-		}
-
-		// unmark if no neighbors were found
-		//if(hoods[hoodId]) // TODO: find a real fix for this
-		if(hood.length <= 1){
-			di.Neighborhood = -1;
-			hoods.pop(); // get rid of the empty hood
-		}
-	}
-*/
 	return hoods;
 };
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
@@ -277,7 +219,7 @@ QuadChart.Chart = function(description){
 				Bottom: desc.Chart.marginBottom || 16	
 			},
 			Quadrants: [],
-			HoodRadius: 5,
+			HoodRadius: 7,
 			AnimationSpeed: 2.5
 		};
 
@@ -537,6 +479,85 @@ QuadChart.RenderBackground = function(cvs, cd, border){
 		return back;
 };
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
+QuadChart.SetDataPointClickEvents = function(chart, di){
+	var cd = chart;
+	var cvs = cd.Canvas;
+	var props = cd.Props;
+	var v = cd.View;
+	var Hoods = cd.GetHoods();
+	var ele = di.Element;	
+	if(!ele) return;
+
+
+	ele.toFront();
+	if(di.Neighborhood >= 0){
+		ele.attr('opacity', '0.0');
+		ele.click(function(e){
+			var x = this.X - 40, y = this.Y, di = this.di;
+			var hood = this.di.Neighborhood;
+
+			if(hood >= 0){
+				var myHood = Hoods[hood];
+				if(myHood.Opacity > 0.5){
+					myHood.Elements.Shape.events[0].Hood = myHood;
+					myHood.Elements.Shape.events[0].f(e);
+					return;
+				}
+			}
+
+			var info = chart.InfoBox;
+			chart.ClearInfoBox();
+			ele.renderInfo(cvs, v, chart.InfoBox, di);
+		});
+	}
+	else{
+		ele.click(function(){
+			var x = this.X, y = this.Y, di = this.di;
+			var oldHood = chart.SelectedHood;
+
+			chart.ClearInfoBox();
+			ele.renderInfo(cvs, v, chart.InfoBox, di);
+
+			chart.Anims.ClearAll();
+			if(oldHood)
+				oldHood.Unfocus(oldHood);
+
+			var transID = chart.Anims.setInterval(function(){
+				var dx = 0, dy = 0;
+				var speed = chart.Props.AnimationSpeed;
+				v.Xoffset += (dx = (x - v.Xoffset)) / speed;
+				v.Yoffset += (dy = (y - v.Yoffset)) / speed;
+				v.Zoom    += (v.BaseZoom - v.Zoom) / speed;
+				v.Update();
+
+
+				if(dx * dx + dy * dy < 1){
+					clearInterval(transID);
+					chart.SelectedHood = null;
+				}
+			}, 16);
+		});
+		ele.dblclick(function(){
+			var x = this.X, y = this.Y, di = this.di;
+			chart.Anims.ClearAll();
+			var transID = chart.Anims.setInterval(function(){
+				var dx = 0, dy = 0, dz = 0;
+				v.Xoffset += (dx = (x - v.Xoffset)) / speed;
+				v.Yoffset += (dy = (y - v.Yoffset)) / speed;
+				v.Zoom    += (dz = (10 - v.Zoom)) / speed;
+				v.Update();
+
+
+				if(dz < 1){
+					clearInterval(transID);
+					chart.SelectedHood = null;
+				}
+			}, 16);
+		});
+	}
+
+};
+
 QuadChart.RenderDatapoint = function(chart, di){
 	var cd = chart;
 	var cvs = cd.Canvas;
@@ -547,77 +568,11 @@ QuadChart.RenderDatapoint = function(chart, di){
 
 	for(var j = props.Quadrants.length; j--;){
 		if(props.Quadrants[j].q.isPointInside(x, y)){
-			var ele = props.Quadrants[j].RenderPoint(cvs, di);
-			var renderInfo = props.Quadrants[j].PointInfo;
+			var ele = di.Element  = props.Quadrants[j].RenderPoint(cvs, di);
+			ele.toFront();
+			ele.renderInfo = props.Quadrants[j].PointInfo;
 
-			if(di.Neighborhood >= 0){
-				ele.attr('opacity', '0.0');
-				//ele[0].style.pointerEvents = 'none';
-				di.Element = ele;
-
-		   		ele.click(function(e){
-					var x = this.X - 40, y = this.Y, di = this.di;
-					var hood = this.di.Neighborhood;
-
-					if(hood >= 0){
-						var myHood = Hoods[hood];
-						if(myHood.Opacity > 0.5){
-							myHood.Elements.Shape.events[0].Hood = myHood;
-							myHood.Elements.Shape.events[0].f(e);
-							return;
-						}
-					}
-
-					var info = chart.InfoBox;
-					chart.ClearInfoBox();
-					renderInfo(cvs, v, chart.InfoBox, di);
-				});
-			}
-			else{
-		   		ele.click(function(){
-					var x = this.X, y = this.Y, di = this.di;
-					var oldHood = chart.SelectedHood;
-
-					chart.ClearInfoBox();
-					renderInfo(cvs, v, chart.InfoBox, di);
-
-					chart.Anims.ClearAll();
-					if(oldHood)
-						oldHood.Unfocus(oldHood);
-
-					var transID = chart.Anims.setInterval(function(){
-						var dx = 0, dy = 0;
-						var speed = chart.Props.AnimationSpeed;
-						v.Xoffset += (dx = (x - v.Xoffset)) / speed;
-						v.Yoffset += (dy = (y - v.Yoffset)) / speed;
-						v.Zoom    += (v.BaseZoom - v.Zoom) / speed;
-						v.Update();
-
-
-						if(dx * dx + dy * dy < 1){
-							clearInterval(transID);
-							chart.SelectedHood = null;
-						}
-					}, 16);
-				});
-				ele.dblclick(function(){
-					var x = this.X, y = this.Y, di = this.di;
-					chart.Anims.ClearAll();
-					var transID = chart.Anims.setInterval(function(){
-						var dx = 0, dy = 0, dz = 0;
-						v.Xoffset += (dx = (x - v.Xoffset)) / speed;
-						v.Yoffset += (dy = (y - v.Yoffset)) / speed;
-						v.Zoom    += (dz = (10 - v.Zoom)) / speed;
-						v.Update();
-
-
-						if(dz < 1){
-							clearInterval(transID);
-							chart.SelectedHood = null;
-						}
-					}, 16);
-				});
-			}
+			QuadChart.SetDataPointClickEvents(chart, di);
 
 			ele.X = x; ele.Y = y; ele.InfoBox = null;
 			ele.di = di;
@@ -778,7 +733,7 @@ QuadChart.RenderNeighborhood = function(chart, hood){
 	var DY = function(n){return Math.abs(n - cy);}; 
 	for(var j = len; j--;){
 		var n = hood[j];
-		
+
 		Mx = DX(n.X) > DX(Mx) ? n.X : Mx;
 		My = DY(n.Y) > DY(My) ? n.Y : My;
 	}
@@ -887,6 +842,9 @@ QuadChart.RenderNeighborhood = function(chart, hood){
 		};
 	}
 
+	for(var i = len; i--;){
+		QuadChart.SetDataPointClickEvents(chart, hood[i]);
+	}	
 }
 
 QuadChart.RenderNeighborhoods = function(chart){

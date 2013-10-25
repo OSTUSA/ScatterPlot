@@ -30,7 +30,7 @@ QuadChart.RenderNeighborhood = function(chart, hood){
 	var DY = function(n){return Math.abs(n - cy);}; 
 	for(var j = len; j--;){
 		var n = hood[j];
-		
+
 		Mx = DX(n.X) > DX(Mx) ? n.X : Mx;
 		My = DY(n.Y) > DY(My) ? n.Y : My;
 	}
@@ -139,6 +139,9 @@ QuadChart.RenderNeighborhood = function(chart, hood){
 		};
 	}
 
+	for(var i = len; i--;){
+		QuadChart.SetDataPointClickEvents(chart, hood[i]);
+	}	
 }
 
 QuadChart.RenderNeighborhoods = function(chart){
