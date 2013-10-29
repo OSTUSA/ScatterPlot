@@ -1,4 +1,29 @@
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
+QuadChart.DetermineBaseZoom = function(chart){
+        var axes  = chart.Axes;
+        var cvs   = chart.Canvas;
+        var v     = chart.View;
+
+        var w, h;
+        var dw = w = Math.abs(axes.X.Max - axes.X.Min); dw = dw < cvs.width ? cvs.width   : dw;
+        var dh = h = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < cvs.height ? cvs.height : dh;
+
+        var cx = (axes.X.Max + axes.X.Min) / 2;
+        var cy = (axes.Y.Max + axes.Y.Min) / 2;
+
+        var sf = w > h ? w : h;
+
+        if(Math.abs(w - dw) < Math.abs(h - dh)){
+                v.BaseZoom = cvs.width / (sf + 30);
+        }
+        else{
+                v.BaseZoom = cvs.height / (sf + 30);
+        } v.Zoom = v.BaseZoom;
+
+	v.Xoffset = cx;
+	v.Yoffset = cy;
+};
+
 QuadChart.RenderChart = function(chart){
 	// some raphael init/assignment
 	var cvs = document.getElementById(chart.Description.Chart.renderTo);
@@ -47,7 +72,7 @@ QuadChart.RenderChart = function(chart){
 
 	var cx = (axes.X.Max + axes.X.Min) / 2;
 	var cy = (axes.Y.Max + axes.Y.Min) / 2;
-
+/*
 	var sf = w > h ? w : h;
 
 	if(Math.abs(w - dw) < Math.abs(h - dh)){
@@ -60,6 +85,8 @@ QuadChart.RenderChart = function(chart){
 
 	v.Xoffset = cx;
 	v.Yoffset = cy;
+*/
+	QuadChart.DetermineBaseZoom(chart);
 
 	var w = (dw >> 1), 
 	    h = (dh >> 1);

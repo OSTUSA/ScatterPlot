@@ -1,16 +1,25 @@
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
+Raphael.el.unbindall = function(){
+	if(this.events)
+	while(this.events.length){
+		//this.unclick(this.events.pop());
+		this.events.pop().unbind();
+	}
+};
+
 QuadChart.SetDataPointClickEvents = function(chart, di){
 	var cd = chart;
 	var cvs = cd.Canvas;
 	var props = cd.Props;
 	var v = cd.View;
 	var Hoods = cd.GetHoods();
-	var ele = di.Element;	
+	var ele = di.Element;
+	
 	if(!ele) return;
-
-
+	ele.unbindall();
 	ele.toFront();
 	if(di.Neighborhood >= 0){
+	
 		ele.attr('opacity', '0.0');
 		ele.click(function(e){
 			var x = this.X - 40, y = this.Y, di = this.di;

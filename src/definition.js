@@ -1,4 +1,24 @@
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
+
+QuadChart.DetermineAxesScales = function(chart){
+/*	
+		var mx, Mx, my, My;
+		var dataSet = chart.GetDataSet();
+		mx = Mx = dataSet[0].X;
+		my = My = dataSet[0].Y;
+		for(var i = dataSet.length; i--;){
+			var di = dataSet[i];
+			mx = di.X < mx ? di.X : mx;
+			Mx = di.X > Mx ? di.X : Mx;
+			my = di.Y < my ? di.Y : my;
+			My = di.Y > My ? di.Y : My;
+		}
+*/
+		var space = chart.GetSpace();
+		chart.Axes.X.Min = space.Min.x; chart.Axes.X.Max = space.Max.x;
+		chart.Axes.Y.Min = space.Min.y; chart.Axes.Y.Max = space.Max.y;
+};
+
 QuadChart.Chart = function(description){
 	var chart = this;
 
@@ -130,22 +150,6 @@ QuadChart.Chart = function(description){
 
 			}
 		};
-
-		// Dynamically determine axes
-		var mx, Mx, my, My;
-		var dataSet = chart.GetDataSet();
-		mx = Mx = dataSet[0].X;
-		my = My = dataSet[0].Y;
-		for(var i = dataSet.length; i--;){
-			var di = dataSet[i];
-			mx = di.X < mx ? di.X : mx;
-			Mx = di.X > Mx ? di.X : Mx;
-			my = di.Y < my ? di.Y : my;
-			My = di.Y > My ? di.Y : My;
-		}
-		chart.Axes.X.Min = mx; chart.Axes.X.Max = Mx;
-		chart.Axes.Y.Min = my; chart.Axes.Y.Max = My;
-
 		// setup some view-dependent coordinate calculation functions
 		chart.X = function(x, c){
 			var cv = c || cvs;
@@ -164,11 +168,17 @@ QuadChart.Chart = function(description){
 		// Create SVG elements
 		QuadChart.RenderChart(chart);
 
+		// register animation handlers a
+		QuadChart.SetupAnimation(chart);
+
 		// determine neighborhoods
 		var hoods = chart.GetHoods();
 		hoods = QuadChart.DetermineNeighborhoods(chart);
 
-		// register animation handlers a
-		QuadChart.SetupAnimation(chart);
+
+		// Dynamically determine axes
+		QuadChart.DetermineAxesScales(chart);
+
+
 	}
 };

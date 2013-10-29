@@ -1,4 +1,39 @@
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
+
+QuadChart.RemoveDataPoint = function(chart, di){
+	var space   = chart.GetSpace();
+	var dataSet = chart.GetDataSet();
+	var hood    = di.Neighborhood >= 0 ? chart.GetHoods()[di.Neighborhood] : null;
+	
+	// remove the datapoint SVG element
+	di.Element.remove();
+
+	// remove the datapoint from the set
+	dataSet.shift(dataSet.indexOf(di));
+
+	// remove the datapoint from the hood
+	if(hood){
+		hood.shift(hood.indexOf(di));
+		
+		// if that was the second data item in the array,	
+		if(hood.length <= 1){
+			// 'delete' the hood from the hoods array
+			delete chart.GetHoods()[di.Neighborhood];
+			hood[0].Neighborhood = -1;
+			QuadChart.SetDataPointClickEvents(chart, hood[0]);
+			
+			// clean up any SVG elements that were
+			// associated with this hood
+			for(var k in hood.Elements){
+				hood.Elements[k].remove();
+			}	
+		}
+		else{
+			QuadChart.RenderNeighborhood(chart, hood);
+		}
+	}
+};
+
 QuadChart.AddDataPoints = function(chart, newData){
 	var space   = chart.GetSpace();
 	var dataSet = chart.GetDataSet();
@@ -16,11 +51,21 @@ QuadChart.AddDataPoints = function(chart, newData){
 		var di = newData[i];
 		space.Insert(
 			{x: di.X, y: di.Y},
-			di
+			di,
+			function(){
+				// TODO re-render the axes
+				// TODO adjust zoom and stuff
+				QuadChart.DetermineBaseZoom(chart);
+				QuadChart.RenderAxes(chart);
+				//`alert('yeah');
+				//chart.View.Update();
+				chart.goHome();
+			}
 		);
 	}
 
 	// try to pair the new elements up with a neighborhood
+	var hoodsToRender = [];
 	for(var i = newData.length; i--;){
 		var di = newData[i];
 
@@ -84,11 +129,19 @@ QuadChart.AddDataPoints = function(chart, newData){
 			hoods.pop(); // get rid of the empty hood
 		}
 		else
-			QuadChart.RenderNeighborhood(chart, hood);
+			hoodsToRender.push(hood);
 
 		// render each data point as it's added
 		QuadChart.RenderDatapoint(chart, di);
-	}	
+	}
+
+	// render all the hoods that have been marked
+	while(hoodsToRender.length){
+		QuadChart.RenderNeighborhood(chart, hoodsToRender.pop());
+	}
+
+	// Dynamically resize the axes
+	QuadChart.DetermineAxesScales(chart);
 };
 QuadChart.DetermineNeighborhoods = function(chart){
 	var hoods   = chart.GetHoods() || [];

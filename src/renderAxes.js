@@ -10,6 +10,11 @@ QuadChart.RenderAxes = function(chartData){
 	var top = cvs.Top, left = cvs.Left;
 	var w = cvs.width, h = cvs.height;
 
+	if(X.cvs){
+		X.cvs.remove();
+		Y.cvs.remove();
+	}
+
 	// create the x, and y axis canvases
 	var yc = Y.cvs = Raphael(par, 60, h);
 	var xc = X.cvs = Raphael(par, w, 60);
@@ -17,7 +22,7 @@ QuadChart.RenderAxes = function(chartData){
 	yc.canvas.style.position = 'absolute';
 	yc.canvas.style.zIndex = 1000;
 	yc.canvas.style.left  = '60px';
-	yc.canvas.style.top = '0px';//(cd.Canvas.Top + 5) + 'px';
+	yc.canvas.style.top = '0px';
 
 	xc.canvas.style.position = 'absolute';
 	xc.canvas.style.zIndex = 1000;

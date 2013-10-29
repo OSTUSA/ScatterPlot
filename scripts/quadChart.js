@@ -70,6 +70,41 @@ QuadChart.UpdateNeighborhoodFocus = function(hood){
 	}
 };
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
+
+QuadChart.RemoveDataPoint = function(chart, di){
+	var space   = chart.GetSpace();
+	var dataSet = chart.GetDataSet();
+	var hood    = di.Neighborhood >= 0 ? chart.GetHoods()[di.Neighborhood] : null;
+	
+	// remove the datapoint SVG element
+	di.Element.remove();
+
+	// remove the datapoint from the set
+	dataSet.shift(dataSet.indexOf(di));
+
+	// remove the datapoint from the hood
+	if(hood){
+		hood.shift(hood.indexOf(di));
+		
+		// if that was the second data item in the array,	
+		if(hood.length <= 1){
+			// 'delete' the hood from the hoods array
+			delete chart.GetHoods()[di.Neighborhood];
+			hood[0].Neighborhood = -1;
+			QuadChart.SetDataPointClickEvents(chart, hood[0]);
+			
+			// clean up any SVG elements that were
+			// associated with this hood
+			for(var k in hood.Elements){
+				hood.Elements[k].remove();
+			}	
+		}
+		else{
+			QuadChart.RenderNeighborhood(chart, hood);
+		}
+	}
+};
+
 QuadChart.AddDataPoints = function(chart, newData){
 	var space   = chart.GetSpace();
 	var dataSet = chart.GetDataSet();
@@ -87,11 +122,21 @@ QuadChart.AddDataPoints = function(chart, newData){
 		var di = newData[i];
 		space.Insert(
 			{x: di.X, y: di.Y},
-			di
+			di,
+			function(){
+				// TODO re-render the axes
+				// TODO adjust zoom and stuff
+				QuadChart.DetermineBaseZoom(chart);
+				QuadChart.RenderAxes(chart);
+				//`alert('yeah');
+				//chart.View.Update();
+				chart.goHome();
+			}
 		);
 	}
 
 	// try to pair the new elements up with a neighborhood
+	var hoodsToRender = [];
 	for(var i = newData.length; i--;){
 		var di = newData[i];
 
@@ -155,11 +200,19 @@ QuadChart.AddDataPoints = function(chart, newData){
 			hoods.pop(); // get rid of the empty hood
 		}
 		else
-			QuadChart.RenderNeighborhood(chart, hood);
+			hoodsToRender.push(hood);
 
 		// render each data point as it's added
 		QuadChart.RenderDatapoint(chart, di);
-	}	
+	}
+
+	// render all the hoods that have been marked
+	while(hoodsToRender.length){
+		QuadChart.RenderNeighborhood(chart, hoodsToRender.pop());
+	}
+
+	// Dynamically resize the axes
+	QuadChart.DetermineAxesScales(chart);
 };
 QuadChart.DetermineNeighborhoods = function(chart){
 	var hoods   = chart.GetHoods() || [];
@@ -170,6 +223,26 @@ QuadChart.DetermineNeighborhoods = function(chart){
 	return hoods;
 };
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
+
+QuadChart.DetermineAxesScales = function(chart){
+/*	
+		var mx, Mx, my, My;
+		var dataSet = chart.GetDataSet();
+		mx = Mx = dataSet[0].X;
+		my = My = dataSet[0].Y;
+		for(var i = dataSet.length; i--;){
+			var di = dataSet[i];
+			mx = di.X < mx ? di.X : mx;
+			Mx = di.X > Mx ? di.X : Mx;
+			my = di.Y < my ? di.Y : my;
+			My = di.Y > My ? di.Y : My;
+		}
+*/
+		var space = chart.GetSpace();
+		chart.Axes.X.Min = space.Min.x; chart.Axes.X.Max = space.Max.x;
+		chart.Axes.Y.Min = space.Min.y; chart.Axes.Y.Max = space.Max.y;
+};
+
 QuadChart.Chart = function(description){
 	var chart = this;
 
@@ -301,22 +374,6 @@ QuadChart.Chart = function(description){
 
 			}
 		};
-
-		// Dynamically determine axes
-		var mx, Mx, my, My;
-		var dataSet = chart.GetDataSet();
-		mx = Mx = dataSet[0].X;
-		my = My = dataSet[0].Y;
-		for(var i = dataSet.length; i--;){
-			var di = dataSet[i];
-			mx = di.X < mx ? di.X : mx;
-			Mx = di.X > Mx ? di.X : Mx;
-			my = di.Y < my ? di.Y : my;
-			My = di.Y > My ? di.Y : My;
-		}
-		chart.Axes.X.Min = mx; chart.Axes.X.Max = Mx;
-		chart.Axes.Y.Min = my; chart.Axes.Y.Max = My;
-
 		// setup some view-dependent coordinate calculation functions
 		chart.X = function(x, c){
 			var cv = c || cvs;
@@ -335,12 +392,18 @@ QuadChart.Chart = function(description){
 		// Create SVG elements
 		QuadChart.RenderChart(chart);
 
+		// register animation handlers a
+		QuadChart.SetupAnimation(chart);
+
 		// determine neighborhoods
 		var hoods = chart.GetHoods();
 		hoods = QuadChart.DetermineNeighborhoods(chart);
 
-		// register animation handlers a
-		QuadChart.SetupAnimation(chart);
+
+		// Dynamically determine axes
+		QuadChart.DetermineAxesScales(chart);
+
+
 	}
 };
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
@@ -355,6 +418,11 @@ QuadChart.RenderAxes = function(chartData){
 	var top = cvs.Top, left = cvs.Left;
 	var w = cvs.width, h = cvs.height;
 
+	if(X.cvs){
+		X.cvs.remove();
+		Y.cvs.remove();
+	}
+
 	// create the x, and y axis canvases
 	var yc = Y.cvs = Raphael(par, 60, h);
 	var xc = X.cvs = Raphael(par, w, 60);
@@ -362,7 +430,7 @@ QuadChart.RenderAxes = function(chartData){
 	yc.canvas.style.position = 'absolute';
 	yc.canvas.style.zIndex = 1000;
 	yc.canvas.style.left  = '60px';
-	yc.canvas.style.top = '0px';//(cd.Canvas.Top + 5) + 'px';
+	yc.canvas.style.top = '0px';
 
 	xc.canvas.style.position = 'absolute';
 	xc.canvas.style.zIndex = 1000;
@@ -419,7 +487,8 @@ QuadChart.RenderAxes = function(chartData){
 	}
 	xc.Scale = xc.path(xScale)
 	             .attr('stroke', X.LineColor);
-};if(typeof(QuadChart) == 'undefined') QuadChart = {};
+};
+if(typeof(QuadChart) == 'undefined') QuadChart = {};
 QuadChart.RenderBackground = function(cvs, cd, border){
 		var back = Raphael(
 			cvs,
@@ -479,18 +548,27 @@ QuadChart.RenderBackground = function(cvs, cd, border){
 		return back;
 };
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
+Raphael.el.unbindall = function(){
+	if(this.events)
+	while(this.events.length){
+		//this.unclick(this.events.pop());
+		this.events.pop().unbind();
+	}
+};
+
 QuadChart.SetDataPointClickEvents = function(chart, di){
 	var cd = chart;
 	var cvs = cd.Canvas;
 	var props = cd.Props;
 	var v = cd.View;
 	var Hoods = cd.GetHoods();
-	var ele = di.Element;	
+	var ele = di.Element;
+	
 	if(!ele) return;
-
-
+	ele.unbindall();
 	ele.toFront();
 	if(di.Neighborhood >= 0){
+	
 		ele.attr('opacity', '0.0');
 		ele.click(function(e){
 			var x = this.X - 40, y = this.Y, di = this.di;
@@ -592,6 +670,31 @@ QuadChart.RenderDatapoints = function(chart){
 	}
 };
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
+QuadChart.DetermineBaseZoom = function(chart){
+        var axes  = chart.Axes;
+        var cvs   = chart.Canvas;
+        var v     = chart.View;
+
+        var w, h;
+        var dw = w = Math.abs(axes.X.Max - axes.X.Min); dw = dw < cvs.width ? cvs.width   : dw;
+        var dh = h = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < cvs.height ? cvs.height : dh;
+
+        var cx = (axes.X.Max + axes.X.Min) / 2;
+        var cy = (axes.Y.Max + axes.Y.Min) / 2;
+
+        var sf = w > h ? w : h;
+
+        if(Math.abs(w - dw) < Math.abs(h - dh)){
+                v.BaseZoom = cvs.width / (sf + 30);
+        }
+        else{
+                v.BaseZoom = cvs.height / (sf + 30);
+        } v.Zoom = v.BaseZoom;
+
+	v.Xoffset = cx;
+	v.Yoffset = cy;
+};
+
 QuadChart.RenderChart = function(chart){
 	// some raphael init/assignment
 	var cvs = document.getElementById(chart.Description.Chart.renderTo);
@@ -640,7 +743,7 @@ QuadChart.RenderChart = function(chart){
 
 	var cx = (axes.X.Max + axes.X.Min) / 2;
 	var cy = (axes.Y.Max + axes.Y.Min) / 2;
-
+/*
 	var sf = w > h ? w : h;
 
 	if(Math.abs(w - dw) < Math.abs(h - dh)){
@@ -653,6 +756,8 @@ QuadChart.RenderChart = function(chart){
 
 	v.Xoffset = cx;
 	v.Yoffset = cy;
+*/
+	QuadChart.DetermineBaseZoom(chart);
 
 	var w = (dw >> 1), 
 	    h = (dh >> 1);
@@ -853,6 +958,9 @@ QuadChart.RenderNeighborhoods = function(chart){
 };
 function SpatialTable(cellSize){
         var t = this;
+	t.Max = {x: null, y: null};
+	t.Min = {x: null, y: null};
+
         var hash = function(point){
                 var x = Math.floor(point.x / cellSize);
                 var y = Math.floor(point.y / cellSize);
@@ -860,9 +968,19 @@ function SpatialTable(cellSize){
                 return x + '-' + y;             
         }       
 
-        t.Insert = function(point, value){
+        t.Insert = function(point, value, onBoundsChanged){
                 var key = hash(point);
                 var cell = (t[key] = t[key] || []);
+		var boundsChanged = false;
+
+		// update the min and max bounds of the
+		// occupied area.
+		if(t.Max.x == null || point.x > t.Max.x){ t.Max.x = point.x; boundsChanged = true; }
+		if(t.Max.y == null || point.y > t.Max.y){ t.Max.y = point.y; boundsChanged = true; }
+		if(t.Min.x == null || point.x < t.Min.x){ t.Min.x = point.x; boundsChanged = true; }
+		if(t.Min.y == null || point.y < t.Min.y){ t.Min.y = point.y; boundsChanged = true; }
+
+		if(boundsChanged) onBoundsChanged();
 
                 cell.push(value);
                 value.SpaceKey = key; // added for easy deletion

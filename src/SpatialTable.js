@@ -1,5 +1,8 @@
 function SpatialTable(cellSize){
         var t = this;
+	t.Max = {x: null, y: null};
+	t.Min = {x: null, y: null};
+
         var hash = function(point){
                 var x = Math.floor(point.x / cellSize);
                 var y = Math.floor(point.y / cellSize);
@@ -7,9 +10,19 @@ function SpatialTable(cellSize){
                 return x + '-' + y;             
         }       
 
-        t.Insert = function(point, value){
+        t.Insert = function(point, value, onBoundsChanged){
                 var key = hash(point);
                 var cell = (t[key] = t[key] || []);
+		var boundsChanged = false;
+
+		// update the min and max bounds of the
+		// occupied area.
+		if(t.Max.x == null || point.x > t.Max.x){ t.Max.x = point.x; boundsChanged = true; }
+		if(t.Max.y == null || point.y > t.Max.y){ t.Max.y = point.y; boundsChanged = true; }
+		if(t.Min.x == null || point.x < t.Min.x){ t.Min.x = point.x; boundsChanged = true; }
+		if(t.Min.y == null || point.y < t.Min.y){ t.Min.y = point.y; boundsChanged = true; }
+
+		if(boundsChanged) onBoundsChanged();
 
                 cell.push(value);
                 value.SpaceKey = key; // added for easy deletion

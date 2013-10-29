@@ -10,6 +10,7 @@
 		<div id="quadChart" style="position:relative;width:100%;height:100%">
 
 		</div>
+		<input type="checkbox" id="keepAdding">Add datapoints </input>
 		<script type="text/javascript">
 			// TODO
 			/*
@@ -151,7 +152,7 @@
 					renderTo: 'quadChart',
 					borderColor: '#ececfb',
 					borderWidth: 3,
-					dataSet: bsData(3, 0, 100, 0, 100),
+					dataSet: bsData(10, 0, 100, 0, 100),
 					xAxes: {
 						title: 'Utilization',
 						lineColor: '#e2e2e2',
@@ -231,8 +232,15 @@
 				}
 			});
 
+			var adding = false;
+			var check = document.getElementById('keepAdding');
+			check.onchange = function(){
+				adding = this.checked;
+			};
+
 			setInterval(function(){
-				QuadChart.AddDataPoints(chart, bsData(1, 0, 100, 0, 100))
+				if(adding)
+					QuadChart.AddDataPoints(chart, bsData(1, -100, 100, -100, 100))
 			}, 500);
 
 		</script>
