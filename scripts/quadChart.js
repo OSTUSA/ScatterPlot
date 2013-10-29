@@ -130,6 +130,11 @@ QuadChart.AddDataPoints = function(chart, newData){
 				QuadChart.RenderAxes(chart);
 				//`alert('yeah');
 				//chart.View.Update();
+				var mean = chart.Props.Quadrants.GetMean(chart);
+				var delta = chart.Props.Quadrants.Delta;
+				console.log('Mean X', mean.x, 'Mean Y', mean.y);
+				console.log('dx', delta.x, 'dy', delta.y);
+				QuadChart.UpdateQuadrants(chart);
 				chart.goHome();
 			}
 		);
@@ -194,7 +199,6 @@ QuadChart.AddDataPoints = function(chart, newData){
 		}
 
 		// unmark if no neighbors were found
-		//if(hoods[hoodId]) // TODO: find a real fix for this
 		if(hood.length <= 1){
 			di.Neighborhood = -1;
 			hoods.pop(); // get rid of the empty hood
@@ -213,6 +217,8 @@ QuadChart.AddDataPoints = function(chart, newData){
 
 	// Dynamically resize the axes
 	QuadChart.DetermineAxesScales(chart);
+
+	chart.SetDataSet(dataSet);
 };
 QuadChart.DetermineNeighborhoods = function(chart){
 	var hoods   = chart.GetHoods() || [];
@@ -225,22 +231,9 @@ QuadChart.DetermineNeighborhoods = function(chart){
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
 
 QuadChart.DetermineAxesScales = function(chart){
-/*	
-		var mx, Mx, my, My;
-		var dataSet = chart.GetDataSet();
-		mx = Mx = dataSet[0].X;
-		my = My = dataSet[0].Y;
-		for(var i = dataSet.length; i--;){
-			var di = dataSet[i];
-			mx = di.X < mx ? di.X : mx;
-			Mx = di.X > Mx ? di.X : Mx;
-			my = di.Y < my ? di.Y : my;
-			My = di.Y > My ? di.Y : My;
-		}
-*/
-		var space = chart.GetSpace();
-		chart.Axes.X.Min = space.Min.x; chart.Axes.X.Max = space.Max.x;
-		chart.Axes.Y.Min = space.Min.y; chart.Axes.Y.Max = space.Max.y;
+	var space = chart.GetSpace();
+	chart.Axes.X.Min = space.Min.x; chart.Axes.X.Max = space.Max.x;
+	chart.Axes.Y.Min = space.Min.y; chart.Axes.Y.Max = space.Max.y;
 };
 
 QuadChart.Chart = function(description){
@@ -260,9 +253,10 @@ QuadChart.Chart = function(description){
 	}
 
 	// Data Getters
-	chart.GetHoods   = function(){ return chart.Data.Hoods; };
-	chart.GetDataSet = function(){ return chart.Data.DataSet; };
-	chart.GetSpace   = function(){ return chart.Data.SpaceTable; };
+	chart.GetHoods   = function()  { return chart.Data.Hoods; };
+	chart.GetDataSet = function()  { return chart.Data.DataSet; };
+	chart.SetDataSet = function(ds){ chart.Data.DataSet = ds };
+	chart.GetSpace   = function()  { return chart.Data.SpaceTable; };
 
 
 	var desc = description, doc = document;
@@ -305,6 +299,24 @@ QuadChart.Chart = function(description){
 				RenderGroup: function(){}
 			});
 		}
+
+		chart.Props.Quadrants.GetMean = function(chart){
+			var data = chart.GetDataSet();
+			var mean = { x: 0, y: 0 };
+			var last = chart.Props.Quadrants.LastMean || {x:0,y:0};
+			
+			for(var i = data.length; i--;){
+				mean.x += data[i].X;
+				mean.y += data[i].Y;
+			}
+			mean.x /= data.length;
+			mean.y /= data.length;
+
+			chart.Props.Quadrants.Delta = { x: mean.x - last.x, y: mean.y - last.y };
+			chart.Props.Quadrants.LastMean = mean;
+
+			return mean;
+		};
 
 		// setup axes
 		if(!desc.Chart.xAxes || !desc.Chart.yAxes){
@@ -695,6 +707,21 @@ QuadChart.DetermineBaseZoom = function(chart){
 	v.Yoffset = cy;
 };
 
+QuadChart.UpdateQuadrants = function(chart){
+        var axes  = chart.Axes;
+        var cvs   = chart.Canvas;
+        var v     = chart.View;
+	var delta = chart.Props.Quadrants.Delta;
+        QuadChart.DetermineBaseZoom(chart);
+
+	if(delta)
+	for(var i = chart.Props.Quadrants.length; i--;){
+		var quad = chart.Props.Quadrants[i];
+		var tstring = 'T' + delta.x + ',' + delta.y;
+		var tsOut = quad.q.transform(tstring);
+	}
+};
+
 QuadChart.RenderChart = function(chart){
 	// some raphael init/assignment
 	var cvs = document.getElementById(chart.Description.Chart.renderTo);
@@ -743,20 +770,7 @@ QuadChart.RenderChart = function(chart){
 
 	var cx = (axes.X.Max + axes.X.Min) / 2;
 	var cy = (axes.Y.Max + axes.Y.Min) / 2;
-/*
-	var sf = w > h ? w : h;
 
-	if(Math.abs(w - dw) < Math.abs(h - dh)){
-		v.BaseZoom = raphCvs.width / (sf + 30);
-	}
-	else{
-		v.BaseZoom = raphCvs.height / (sf + 30);
-	} v.Zoom = v.BaseZoom;
-
-
-	v.Xoffset = cx;
-	v.Yoffset = cy;
-*/
 	QuadChart.DetermineBaseZoom(chart);
 
 	var w = (dw >> 1), 

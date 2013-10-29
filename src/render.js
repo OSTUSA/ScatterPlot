@@ -24,6 +24,21 @@ QuadChart.DetermineBaseZoom = function(chart){
 	v.Yoffset = cy;
 };
 
+QuadChart.UpdateQuadrants = function(chart){
+        var axes  = chart.Axes;
+        var cvs   = chart.Canvas;
+        var v     = chart.View;
+	var delta = chart.Props.Quadrants.Delta;
+        QuadChart.DetermineBaseZoom(chart);
+
+	if(delta)
+	for(var i = chart.Props.Quadrants.length; i--;){
+		var quad = chart.Props.Quadrants[i];
+		var tstring = 'T' + delta.x + ',' + delta.y;
+		var tsOut = quad.q.transform(tstring);
+	}
+};
+
 QuadChart.RenderChart = function(chart){
 	// some raphael init/assignment
 	var cvs = document.getElementById(chart.Description.Chart.renderTo);
@@ -72,20 +87,7 @@ QuadChart.RenderChart = function(chart){
 
 	var cx = (axes.X.Max + axes.X.Min) / 2;
 	var cy = (axes.Y.Max + axes.Y.Min) / 2;
-/*
-	var sf = w > h ? w : h;
 
-	if(Math.abs(w - dw) < Math.abs(h - dh)){
-		v.BaseZoom = raphCvs.width / (sf + 30);
-	}
-	else{
-		v.BaseZoom = raphCvs.height / (sf + 30);
-	} v.Zoom = v.BaseZoom;
-
-
-	v.Xoffset = cx;
-	v.Yoffset = cy;
-*/
 	QuadChart.DetermineBaseZoom(chart);
 
 	var w = (dw >> 1), 

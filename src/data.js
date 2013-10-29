@@ -59,6 +59,11 @@ QuadChart.AddDataPoints = function(chart, newData){
 				QuadChart.RenderAxes(chart);
 				//`alert('yeah');
 				//chart.View.Update();
+				var mean = chart.Props.Quadrants.GetMean(chart);
+				var delta = chart.Props.Quadrants.Delta;
+				console.log('Mean X', mean.x, 'Mean Y', mean.y);
+				console.log('dx', delta.x, 'dy', delta.y);
+				QuadChart.UpdateQuadrants(chart);
 				chart.goHome();
 			}
 		);
@@ -123,7 +128,6 @@ QuadChart.AddDataPoints = function(chart, newData){
 		}
 
 		// unmark if no neighbors were found
-		//if(hoods[hoodId]) // TODO: find a real fix for this
 		if(hood.length <= 1){
 			di.Neighborhood = -1;
 			hoods.pop(); // get rid of the empty hood
@@ -142,6 +146,8 @@ QuadChart.AddDataPoints = function(chart, newData){
 
 	// Dynamically resize the axes
 	QuadChart.DetermineAxesScales(chart);
+
+	chart.SetDataSet(dataSet);
 };
 QuadChart.DetermineNeighborhoods = function(chart){
 	var hoods   = chart.GetHoods() || [];

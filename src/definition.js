@@ -1,22 +1,9 @@
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
 
 QuadChart.DetermineAxesScales = function(chart){
-/*	
-		var mx, Mx, my, My;
-		var dataSet = chart.GetDataSet();
-		mx = Mx = dataSet[0].X;
-		my = My = dataSet[0].Y;
-		for(var i = dataSet.length; i--;){
-			var di = dataSet[i];
-			mx = di.X < mx ? di.X : mx;
-			Mx = di.X > Mx ? di.X : Mx;
-			my = di.Y < my ? di.Y : my;
-			My = di.Y > My ? di.Y : My;
-		}
-*/
-		var space = chart.GetSpace();
-		chart.Axes.X.Min = space.Min.x; chart.Axes.X.Max = space.Max.x;
-		chart.Axes.Y.Min = space.Min.y; chart.Axes.Y.Max = space.Max.y;
+	var space = chart.GetSpace();
+	chart.Axes.X.Min = space.Min.x; chart.Axes.X.Max = space.Max.x;
+	chart.Axes.Y.Min = space.Min.y; chart.Axes.Y.Max = space.Max.y;
 };
 
 QuadChart.Chart = function(description){
@@ -36,9 +23,10 @@ QuadChart.Chart = function(description){
 	}
 
 	// Data Getters
-	chart.GetHoods   = function(){ return chart.Data.Hoods; };
-	chart.GetDataSet = function(){ return chart.Data.DataSet; };
-	chart.GetSpace   = function(){ return chart.Data.SpaceTable; };
+	chart.GetHoods   = function()  { return chart.Data.Hoods; };
+	chart.GetDataSet = function()  { return chart.Data.DataSet; };
+	chart.SetDataSet = function(ds){ chart.Data.DataSet = ds };
+	chart.GetSpace   = function()  { return chart.Data.SpaceTable; };
 
 
 	var desc = description, doc = document;
@@ -81,6 +69,24 @@ QuadChart.Chart = function(description){
 				RenderGroup: function(){}
 			});
 		}
+
+		chart.Props.Quadrants.GetMean = function(chart){
+			var data = chart.GetDataSet();
+			var mean = { x: 0, y: 0 };
+			var last = chart.Props.Quadrants.LastMean || {x:0,y:0};
+			
+			for(var i = data.length; i--;){
+				mean.x += data[i].X;
+				mean.y += data[i].Y;
+			}
+			mean.x /= data.length;
+			mean.y /= data.length;
+
+			chart.Props.Quadrants.Delta = { x: mean.x - last.x, y: mean.y - last.y };
+			chart.Props.Quadrants.LastMean = mean;
+
+			return mean;
+		};
 
 		// setup axes
 		if(!desc.Chart.xAxes || !desc.Chart.yAxes){
