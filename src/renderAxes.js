@@ -34,6 +34,7 @@ QuadChart.RenderAxes = function(chartData){
 	// create arrays to hold the tick labels
 	yc.Ticks = []; xc.Ticks = [];
 
+	// create the white backgrounds for each axis
 	yc.rect(0, Y.Min - dy * 2, yc.width, dy << 2)
 	  .attr('fill', '#fff')
 	  .attr('stroke-width', 0);
@@ -41,6 +42,9 @@ QuadChart.RenderAxes = function(chartData){
 	  .attr('fill', '#fff')
 	  .attr('stroke-width', 0);
 
+	// for each tick, append needed transform string values to render
+	// the tick, and render a text label for it. Push x, y, rotation
+	// and label elements onto an array for later.
 	var yScale = '', xScale = '', dx = X.Max - X.Min, dy = Y.Max - Y.Min;
 	for(var i = Math.ceil(dy / Y.TickInterval); i--;){
 		var y = Y.Min + i * Y.TickInterval;
@@ -55,14 +59,11 @@ QuadChart.RenderAxes = function(chartData){
 			Y: y,
 			R: 0
 		});
-
-		if(i == 0){
-		//	alert(y);
-		}
 	}
-	yc.Scale = yc.path(yScale)
+	yc.Scale = yc.path(yScale) // finally, draw the ticks
 	             .attr('stroke', Y.LineColor);
 
+	// Same as above, but repeat for the x axis.
 	for(var i = Math.ceil(dx / X.TickInterval) + 1; i--;){
 		var x = X.Min + i * X.TickInterval;
 		xScale += 'M' + x + ',5';
@@ -77,6 +78,6 @@ QuadChart.RenderAxes = function(chartData){
 			R: (Math.PI * 2) - Math.PI / 4
 		});
 	}
-	xc.Scale = xc.path(xScale)
+	xc.Scale = xc.path(xScale) // draw the ticks
 	             .attr('stroke', X.LineColor);
 };

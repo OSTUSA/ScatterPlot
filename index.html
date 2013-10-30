@@ -3,10 +3,20 @@
 		<script type="text/javascript" src="scripts/raphael.min.js"></script>
 		<script type="text/javascript" src="scripts/quadChart.js"></script>
 		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.min.js"></script>
+		<style>
+			input, label{
+				float: left;
+			}
+
+		</style>
 	</head>
 
 	<body style="background:#fff">
-
+		<div style="height:40px">
+			<label>X:</label><input id="xMean" type="text"></input>
+			<label>Y:</label><input id="yMean" type="text"></input>
+			<input type="button" value="Set" onclick="SetZero()"></input>
+		</div>
 		<div id="quadChart" style="position:relative;width:100%;height:100%">
 
 		</div>
@@ -19,6 +29,16 @@
 			circle.attr('fill', '#f00');
 			circle.attr('stroke', '#fff');
 			*/
+			function SetZero(){
+				var xtxt = document.getElementById('xMean');
+				var ytxt = document.getElementById('yMean');
+				
+				var X = parseFloat(xtxt.value);
+				var Y = parseFloat(ytxt.value);
+
+				QuadChart.UpdateQuadrants(chart, {x:X,y:Y});
+			}
+
 			var datapointInfo = function(cvs, view, info, di){
 				var x = 0, y = 0, s = 5 / view.Zoom;
 				var tri = 'M'+x+','+y+'l-2,4l,4,0';
@@ -241,7 +261,7 @@
 			setInterval(function(){
 				if(adding)
 					QuadChart.AddDataPoints(chart, bsData(1, -100, 100, -100, 100))
-			}, 500);
+			}, 50);
 
 		</script>
 	</body>

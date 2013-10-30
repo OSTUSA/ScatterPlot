@@ -20,6 +20,7 @@ QuadChart.RemoveDataPoint = function(chart, di){
 			// 'delete' the hood from the hoods array
 			delete chart.GetHoods()[di.Neighborhood];
 			hood[0].Neighborhood = -1;
+			hood[0].Element.attr('opacity', 1);
 			QuadChart.SetDataPointClickEvents(chart, hood[0]);
 			
 			// clean up any SVG elements that were
@@ -63,7 +64,6 @@ QuadChart.AddDataPoints = function(chart, newData){
 				var delta = chart.Props.Quadrants.Delta;
 				console.log('Mean X', mean.x, 'Mean Y', mean.y);
 				console.log('dx', delta.x, 'dy', delta.y);
-				QuadChart.UpdateQuadrants(chart);
 				chart.goHome();
 			}
 		);
@@ -137,6 +137,8 @@ QuadChart.AddDataPoints = function(chart, newData){
 
 		// render each data point as it's added
 		QuadChart.RenderDatapoint(chart, di);
+
+		//QuadChart.UpdateQuadrants(chart);
 	}
 
 	// render all the hoods that have been marked

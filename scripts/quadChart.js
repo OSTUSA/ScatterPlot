@@ -55,7 +55,8 @@ QuadChart.SetupAnimation = function(chart){
 			p.LastWidth = p.clientWidth;
 			p.LastHeight = p.clientHeight;
 
-			QuadChart.RenderChart(chart);	
+			QuadChart.RenderChart(chart);
+			QuadChart.RedrawAllData(chart);	
 		}
 	}, 100);
 };
@@ -91,6 +92,7 @@ QuadChart.RemoveDataPoint = function(chart, di){
 			// 'delete' the hood from the hoods array
 			delete chart.GetHoods()[di.Neighborhood];
 			hood[0].Neighborhood = -1;
+			hood[0].Element.attr('opacity', 1);
 			QuadChart.SetDataPointClickEvents(chart, hood[0]);
 			
 			// clean up any SVG elements that were
@@ -134,7 +136,6 @@ QuadChart.AddDataPoints = function(chart, newData){
 				var delta = chart.Props.Quadrants.Delta;
 				console.log('Mean X', mean.x, 'Mean Y', mean.y);
 				console.log('dx', delta.x, 'dy', delta.y);
-				QuadChart.UpdateQuadrants(chart);
 				chart.goHome();
 			}
 		);
@@ -208,6 +209,8 @@ QuadChart.AddDataPoints = function(chart, newData){
 
 		// render each data point as it's added
 		QuadChart.RenderDatapoint(chart, di);
+
+		//QuadChart.UpdateQuadrants(chart);
 	}
 
 	// render all the hoods that have been marked
@@ -454,6 +457,7 @@ QuadChart.RenderAxes = function(chartData){
 	// create arrays to hold the tick labels
 	yc.Ticks = []; xc.Ticks = [];
 
+	// create the white backgrounds for each axis
 	yc.rect(0, Y.Min - dy * 2, yc.width, dy << 2)
 	  .attr('fill', '#fff')
 	  .attr('stroke-width', 0);
@@ -461,6 +465,9 @@ QuadChart.RenderAxes = function(chartData){
 	  .attr('fill', '#fff')
 	  .attr('stroke-width', 0);
 
+	// for each tick, append needed transform string values to render
+	// the tick, and render a text label for it. Push x, y, rotation
+	// and label elements onto an array for later.
 	var yScale = '', xScale = '', dx = X.Max - X.Min, dy = Y.Max - Y.Min;
 	for(var i = Math.ceil(dy / Y.TickInterval); i--;){
 		var y = Y.Min + i * Y.TickInterval;
@@ -475,14 +482,11 @@ QuadChart.RenderAxes = function(chartData){
 			Y: y,
 			R: 0
 		});
-
-		if(i == 0){
-		//	alert(y);
-		}
 	}
-	yc.Scale = yc.path(yScale)
+	yc.Scale = yc.path(yScale) // finally, draw the ticks
 	             .attr('stroke', Y.LineColor);
 
+	// Same as above, but repeat for the x axis.
 	for(var i = Math.ceil(dx / X.TickInterval) + 1; i--;){
 		var x = X.Min + i * X.TickInterval;
 		xScale += 'M' + x + ',5';
@@ -497,7 +501,7 @@ QuadChart.RenderAxes = function(chartData){
 			R: (Math.PI * 2) - Math.PI / 4
 		});
 	}
-	xc.Scale = xc.path(xScale)
+	xc.Scale = xc.path(xScale) // draw the ticks
 	             .attr('stroke', X.LineColor);
 };
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
@@ -691,6 +695,8 @@ QuadChart.DetermineBaseZoom = function(chart){
         var dw = w = Math.abs(axes.X.Max - axes.X.Min); dw = dw < cvs.width ? cvs.width   : dw;
         var dh = h = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < cvs.height ? cvs.height : dh;
 
+	var mean = chart.Props.Quadrants.GetMean(chart);
+
         var cx = (axes.X.Max + axes.X.Min) / 2;
         var cy = (axes.Y.Max + axes.Y.Min) / 2;
 
@@ -707,19 +713,34 @@ QuadChart.DetermineBaseZoom = function(chart){
 	v.Yoffset = cy;
 };
 
-QuadChart.UpdateQuadrants = function(chart){
+QuadChart.UpdateQuadrants = function(chart, chartZero){
         var axes  = chart.Axes;
         var cvs   = chart.Canvas;
         var v     = chart.View;
-	var delta = chart.Props.Quadrants.Delta;
-        QuadChart.DetermineBaseZoom(chart);
+	QuadChart.DetermineBaseZoom(chart);
 
-	if(delta)
 	for(var i = chart.Props.Quadrants.length; i--;){
 		var quad = chart.Props.Quadrants[i];
-		var tstring = 'T' + delta.x + ',' + delta.y;
-		var tsOut = quad.q.transform(tstring);
+		var mat = 'M1,0,0,1,' + chartZero.x + ',' + chartZero.y;
+		quad.q.transform(mat);
+		quad.txt.transform(mat);
 	}
+
+	// update all datapoint, and neighborhood styles
+	QuadChart.RedrawAllData(chart);
+};
+
+QuadChart.RedrawAllData = function(chart){
+	var dataSet = chart.GetDataSet();
+
+	// remove all the datapoints SVG elements
+	for(var i = dataSet.length; i--;){
+		var di = dataSet[i];
+		di.Element.remove();
+	}
+
+	// reprocess the existing data
+	QuadChart.AddDataPoints(chart, null);
 };
 
 QuadChart.RenderChart = function(chart){
@@ -768,8 +789,8 @@ QuadChart.RenderChart = function(chart){
 	var dw = w = Math.abs(axes.X.Max - axes.X.Min); dw = dw < raphCvs.width ? raphCvs.width   : dw;
 	var dh = h = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < raphCvs.height ? raphCvs.height : dh;
 
-	var cx = (axes.X.Max + axes.X.Min) / 2;
-	var cy = (axes.Y.Max + axes.Y.Min) / 2;
+	var cx = 0;//(axes.X.Max + axes.X.Min) / 2;
+	var cy = 0;//(axes.Y.Max + axes.Y.Min) / 2;
 
 	QuadChart.DetermineBaseZoom(chart);
 
@@ -791,19 +812,19 @@ QuadChart.RenderChart = function(chart){
 	}
 
 	var hw = w >> 3, hh = h >> 3;
-	raphCvs.text(-hw + cx, -hh + cy, props.Quadrants[0].Text)
+	props.Quadrants[0].txt = raphCvs.text(-hw + cx, -hh + cy, props.Quadrants[0].Text)
 	   .click(chart.goHome)
 	   .attr('font-family', 'arial')
 	   .attr('fill', props.Quadrants[0].TextColor);
-	raphCvs.text(hw + cx, -hh + cy, props.Quadrants[1].Text)
+	props.Quadrants[1].txt = raphCvs.text(hw + cx, -hh + cy, props.Quadrants[1].Text)
 	   .click(chart.goHome)
 	   .attr('font-family', 'arial')
 	   .attr('fill', props.Quadrants[1].TextColor);
-	raphCvs.text(hw + cx, hh + cy, props.Quadrants[2].Text)
+	props.Quadrants[2].txt = raphCvs.text(hw + cx, hh + cy, props.Quadrants[2].Text)
 	   .click(chart.goHome)
 	   .attr('font-family', 'arial')
 	   .attr('fill', props.Quadrants[2].TextColor);
-	raphCvs.text(-hw + cx, hh + cy, props.Quadrants[3].Text)
+	props.Quadrants[3].txt = raphCvs.text(-hw + cx, hh + cy, props.Quadrants[3].Text)
 	   .click(chart.goHome)
 	   .attr('font-family', 'arial')
 	   .attr('fill', props.Quadrants[3].TextColor);

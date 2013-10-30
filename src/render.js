@@ -8,6 +8,8 @@ QuadChart.DetermineBaseZoom = function(chart){
         var dw = w = Math.abs(axes.X.Max - axes.X.Min); dw = dw < cvs.width ? cvs.width   : dw;
         var dh = h = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < cvs.height ? cvs.height : dh;
 
+	var mean = chart.Props.Quadrants.GetMean(chart);
+
         var cx = (axes.X.Max + axes.X.Min) / 2;
         var cy = (axes.Y.Max + axes.Y.Min) / 2;
 
@@ -24,19 +26,34 @@ QuadChart.DetermineBaseZoom = function(chart){
 	v.Yoffset = cy;
 };
 
-QuadChart.UpdateQuadrants = function(chart){
+QuadChart.UpdateQuadrants = function(chart, chartZero){
         var axes  = chart.Axes;
         var cvs   = chart.Canvas;
         var v     = chart.View;
-	var delta = chart.Props.Quadrants.Delta;
-        QuadChart.DetermineBaseZoom(chart);
+	QuadChart.DetermineBaseZoom(chart);
 
-	if(delta)
 	for(var i = chart.Props.Quadrants.length; i--;){
 		var quad = chart.Props.Quadrants[i];
-		var tstring = 'T' + delta.x + ',' + delta.y;
-		var tsOut = quad.q.transform(tstring);
+		var mat = 'M1,0,0,1,' + chartZero.x + ',' + chartZero.y;
+		quad.q.transform(mat);
+		quad.txt.transform(mat);
 	}
+
+	// update all datapoint, and neighborhood styles
+	QuadChart.RedrawAllData(chart);
+};
+
+QuadChart.RedrawAllData = function(chart){
+	var dataSet = chart.GetDataSet();
+
+	// remove all the datapoints SVG elements
+	for(var i = dataSet.length; i--;){
+		var di = dataSet[i];
+		di.Element.remove();
+	}
+
+	// reprocess the existing data
+	QuadChart.AddDataPoints(chart, null);
 };
 
 QuadChart.RenderChart = function(chart){
@@ -85,8 +102,8 @@ QuadChart.RenderChart = function(chart){
 	var dw = w = Math.abs(axes.X.Max - axes.X.Min); dw = dw < raphCvs.width ? raphCvs.width   : dw;
 	var dh = h = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < raphCvs.height ? raphCvs.height : dh;
 
-	var cx = (axes.X.Max + axes.X.Min) / 2;
-	var cy = (axes.Y.Max + axes.Y.Min) / 2;
+	var cx = 0;//(axes.X.Max + axes.X.Min) / 2;
+	var cy = 0;//(axes.Y.Max + axes.Y.Min) / 2;
 
 	QuadChart.DetermineBaseZoom(chart);
 
@@ -108,19 +125,19 @@ QuadChart.RenderChart = function(chart){
 	}
 
 	var hw = w >> 3, hh = h >> 3;
-	raphCvs.text(-hw + cx, -hh + cy, props.Quadrants[0].Text)
+	props.Quadrants[0].txt = raphCvs.text(-hw + cx, -hh + cy, props.Quadrants[0].Text)
 	   .click(chart.goHome)
 	   .attr('font-family', 'arial')
 	   .attr('fill', props.Quadrants[0].TextColor);
-	raphCvs.text(hw + cx, -hh + cy, props.Quadrants[1].Text)
+	props.Quadrants[1].txt = raphCvs.text(hw + cx, -hh + cy, props.Quadrants[1].Text)
 	   .click(chart.goHome)
 	   .attr('font-family', 'arial')
 	   .attr('fill', props.Quadrants[1].TextColor);
-	raphCvs.text(hw + cx, hh + cy, props.Quadrants[2].Text)
+	props.Quadrants[2].txt = raphCvs.text(hw + cx, hh + cy, props.Quadrants[2].Text)
 	   .click(chart.goHome)
 	   .attr('font-family', 'arial')
 	   .attr('fill', props.Quadrants[2].TextColor);
-	raphCvs.text(-hw + cx, hh + cy, props.Quadrants[3].Text)
+	props.Quadrants[3].txt = raphCvs.text(-hw + cx, hh + cy, props.Quadrants[3].Text)
 	   .click(chart.goHome)
 	   .attr('font-family', 'arial')
 	   .attr('fill', props.Quadrants[3].TextColor);

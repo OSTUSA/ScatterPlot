@@ -55,7 +55,8 @@ QuadChart.SetupAnimation = function(chart){
 			p.LastWidth = p.clientWidth;
 			p.LastHeight = p.clientHeight;
 
-			QuadChart.RenderChart(chart);	
+			QuadChart.RenderChart(chart);
+			QuadChart.RedrawAllData(chart);	
 		}
 	}, 100);
 };
