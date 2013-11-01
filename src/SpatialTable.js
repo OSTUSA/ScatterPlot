@@ -59,7 +59,7 @@ function SpatialTable(cellSize){
                 if(arg.SpaceKey){
                         var bucket = t[arg.SpaceKey];
                         var i = bucket.indexOf(arg);
-                        if(i) bucket = bucket.splice(i, 1);
+                        if(i>=0) bucket = bucket.splice(i, 1);
                 }
                 else{
                         var key = hash(arg);

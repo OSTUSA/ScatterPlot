@@ -138,20 +138,20 @@ QuadChart.Chart = function(description){
 				Y.cvs.setViewBox(0, cd.Y(0, Y.cvs), Y.cvs.width, cd.S(Y.cvs.height), false);
 				X.cvs.setViewBox(cd.X(0, X.cvs), 0, cd.S(X.cvs.width), X.cvs.height, false);
 			
-				for(var i = Y.cvs.Ticks.length; i--;){
-					var t = Y.cvs.Ticks[i], r = t.R;
-					var m = matrix([cos(r), s * sin(r), -sin(r), s * cos(r), t.X, t.Y]);
+                for (var i = Y.cvs.Ticks.length; i--;) {
+                    var t = Y.cvs.Ticks[i], r = t.R;
+                    var m = matrix([cos(r) * 1.25, s * sin(r) * 0.75, -sin(r) * 1.25, s * cos(r) * 0.75, t.X, t.Y]);
 
-					t.Ele.transform(m);
-				}
-				X.cvs.Scale.attr('stroke-width', 2 / this.Zoom);
+                    t.Ele.transform(m);
+                }
+                X.cvs.Scale.attr('stroke-width', 2 / this.Zoom);
 
-				for(var i = X.cvs.Ticks.length; i--;){
-					var t = X.cvs.Ticks[i], r = t.R;// += 0.01;
-					var m = matrix([s * cos(r), sin(r), -s * sin(r), cos(r), t.X, t.Y]);
+                for (var i = X.cvs.Ticks.length; i--;) {
+                    var t = X.cvs.Ticks[i], r = t.R;// += 0.01;
+                    var m = matrix([s * cos(r) * 0.75, sin(r) * 1.25, -s * sin(r) * 0.75, cos(r) * 1.25, t.X, t.Y]);
 
-					t.Ele.transform(m);
-				}
+                    t.Ele.transform(m);
+                }
 				Y.cvs.Scale.attr('stroke-width', 2 / this.Zoom);
 
 			}

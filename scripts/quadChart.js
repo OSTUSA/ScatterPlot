@@ -1,3 +1,73 @@
+function SpatialTable(cellSize){
+        var t = this;
+	t.Max = {x: null, y: null};
+	t.Min = {x: null, y: null};
+
+        var hash = function(point){
+                var x = Math.floor(point.x / cellSize);
+                var y = Math.floor(point.y / cellSize);
+
+                return x + '-' + y;             
+        }       
+
+        t.Insert = function(point, value, onBoundsChanged){
+                var key = hash(point);
+                var cell = (t[key] = t[key] || []);
+		var boundsChanged = false;
+
+		// update the min and max bounds of the
+		// occupied area.
+		if(t.Max.x == null || point.x > t.Max.x){ t.Max.x = point.x; boundsChanged = true; }
+		if(t.Max.y == null || point.y > t.Max.y){ t.Max.y = point.y; boundsChanged = true; }
+		if(t.Min.x == null || point.x < t.Min.x){ t.Min.x = point.x; boundsChanged = true; }
+		if(t.Min.y == null || point.y < t.Min.y){ t.Min.y = point.y; boundsChanged = true; }
+
+		if(boundsChanged) onBoundsChanged();
+
+                cell.push(value);
+                value.SpaceKey = key; // added for easy deletion
+        }
+
+        t.Get = function(point, radius){
+                var values = [];
+        
+                var circleX   = Math.floor(point.x / cellSize);
+                var circleY   = Math.floor(point.y / cellSize);
+                var circleRad = Math.ceil(radius / cellSize);
+                var radSqr = circleRad * circleRad;
+
+                for(var i = circleX - circleRad; i < circleX + circleRad; i++)
+                for(var j = circleY - circleRad; j < circleY + circleRad; j++){
+                        // skip if this coord is outside of the query circle's
+                        // radius
+                        var dx = i - circleX, dy = j - circleY;
+                        if(dx * dx + dy * dy > radSqr)
+                                continue;               
+
+                        var cell = t[i + '-' + j];      
+                        if(cell){
+                                values = values.concat(cell);
+                        }
+                }               
+
+                return values;
+        }
+
+        // arg can be either a point, or a value inserted into the
+        // data structure
+        t.Remove = function(arg){
+                if(arg.SpaceKey){
+                        var bucket = t[arg.SpaceKey];
+                        var i = bucket.indexOf(arg);
+                        if(i>=0) bucket = bucket.splice(i, 1);
+                }
+                else{
+                        var key = hash(arg);
+                        t[key] = [];
+                }
+        }
+}
+
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
 QuadChart.SetupAnimation = function(chart){
 	var par   = chart.Parent;
@@ -79,6 +149,9 @@ QuadChart.RemoveDataPoint = function(chart, di){
 	
 	// remove the datapoint SVG element
 	di.Element.remove();
+
+	// remove from the space table
+	space.Remove(di);
 
 	// remove the datapoint from the set
 	dataSet.shift(dataSet.indexOf(di));
@@ -220,8 +293,10 @@ QuadChart.AddDataPoints = function(chart, newData){
 
 	// Dynamically resize the axes
 	QuadChart.DetermineAxesScales(chart);
-
+	QuadChart.DetermineBaseZoom(chart);
 	chart.SetDataSet(dataSet);
+
+	return dataSet;
 };
 QuadChart.DetermineNeighborhoods = function(chart){
 	var hoods   = chart.GetHoods() || [];
@@ -381,9 +456,10 @@ QuadChart.Chart = function(description){
 
 				for(var i = X.cvs.Ticks.length; i--;){
 					var t = X.cvs.Ticks[i], r = t.R;// += 0.01;
-					var m = matrix([s * cos(r), sin(r), -s * sin(r), cos(r), t.X, t.Y]);
-
-					t.Ele.transform(m);
+					var S = s * sin(r), C = s * cos(r);
+					var m = [C, S, -S, C, t.X * C - t.Y * S, t.X * S + t.Y * C];
+					var transStr = 'M' + m;
+					t.Ele.transform(transStr);
 				}
 				Y.cvs.Scale.attr('stroke-width', 2 / this.Zoom);
 
@@ -420,6 +496,163 @@ QuadChart.Chart = function(description){
 
 
 	}
+};
+if(typeof(QuadChart) == 'undefined') QuadChart = {};
+QuadChart.DetermineBaseZoom = function(chart){
+        var axes  = chart.Axes;
+        var cvs   = chart.Canvas;
+        var v     = chart.View;
+
+        var w, h;
+        var dw = w = Math.abs(axes.X.Max - axes.X.Min); dw = dw < cvs.width ? cvs.width   : dw;
+        var dh = h = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < cvs.height ? cvs.height : dh;
+
+	var mean = chart.Props.Quadrants.GetMean(chart);
+
+        var cx = (axes.X.Max + axes.X.Min) / 2;
+        var cy = (axes.Y.Max + axes.Y.Min) / 2;
+
+        var sf = w > h ? w : h;
+
+        if(Math.abs(w - dw) < Math.abs(h - dh)){
+                v.BaseZoom = cvs.width / (sf + 30);
+        }
+        else{
+                v.BaseZoom = cvs.height / (sf + 30);
+        } v.Zoom = v.BaseZoom;
+
+	v.Xoffset = cx;
+	v.Yoffset = cy;
+};
+
+QuadChart.UpdateQuadrants = function(chart, chartZero){
+        var axes  = chart.Axes;
+        var cvs   = chart.Canvas;
+        var v     = chart.View;
+	QuadChart.DetermineBaseZoom(chart);
+
+	for(var i = chart.Props.Quadrants.length; i--;){
+		var quad = chart.Props.Quadrants[i];
+		var mat = 'M1,0,0,1,' + chartZero.x + ',' + chartZero.y;
+		quad.q.transform(mat);
+		quad.txt.transform(mat);
+	}
+
+	// update all datapoint, and neighborhood styles
+	QuadChart.RedrawAllData(chart);
+};
+
+QuadChart.RedrawAllData = function(chart){
+	var dataSet = chart.GetDataSet();
+
+	// remove all the datapoints SVG elements
+	for(var i = dataSet.length; i--;){
+		var di = dataSet[i];
+		di.Element.remove();
+	}
+
+	// reprocess the existing data
+	QuadChart.AddDataPoints(chart, null);
+};
+
+QuadChart.RenderChart = function(chart){
+	// some raphael init/assignment
+	var chtTemp = chart.Description.Chart;
+	var cvs = document.getElementById(chtTemp.renderTo) || chtTemp.renderTo;
+	if(!cvs){
+		err('Specified target element not found');
+		return null;
+	}
+	chart.Parent = cvs;	
+
+	chart.ClearInfoBox = function(){
+		if(chart.InfoBox.length){
+			while(chart.InfoBox.length)
+				chart.InfoBox.pop().remove();
+		}
+	};
+
+	var rx = 0, ry = 0;
+	var par = chart.Parent;
+	var raphCvs = chart.Canvas = Raphael(
+		par,
+		rx = (par.clientWidth  - 280),
+		ry = (par.clientHeight - 120)
+	);
+	raphCvs.Top = ry; raphCvs.Left = rx;
+	raphCvs.canvas.style.position = 'absolute';
+	raphCvs.canvas.style.top = '0px';//-cvs.clientHeight + 'px';
+	raphCvs.canvas.style.left = '120px';
+
+	// create the background axes titles
+	var border = 5;
+	var bg = QuadChart.RenderBackground(par, chart, border);
+
+
+	raphCvs.canvas.style.borderBottom = border + 'px solid ' + chart.Axes.X.LineColor;
+	raphCvs.canvas.style.borderLeft = border + 'px solid ' + chart.Axes.Y.LineColor;
+	par.Cvs = raphCvs;
+
+	var props = chart.Props;
+	var axes  = chart.Axes;
+	var cvs   = chart.Canvas;
+	var v     = chart.View;	
+
+	var w, h;
+	var dw = w = Math.abs(axes.X.Max - axes.X.Min); dw = dw < raphCvs.width ? raphCvs.width   : dw;
+	var dh = h = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < raphCvs.height ? raphCvs.height : dh;
+
+	var cx = 0;//(axes.X.Max + axes.X.Min) / 2;
+	var cy = 0;//(axes.Y.Max + axes.Y.Min) / 2;
+
+	QuadChart.DetermineBaseZoom(chart);
+
+	var w = (dw >> 1), 
+	    h = (dh >> 1);
+
+	// render quadrands
+	props.Quadrants[0].q = raphCvs.rect(-w + cx, -h + cy, w, h);
+	props.Quadrants[1].q = raphCvs.rect(cx, -h + cy, w, h);
+	props.Quadrants[2].q = raphCvs.rect(cx, cy, w, h);
+	props.Quadrants[3].q = raphCvs.rect(-w + cx, cy, w, h);
+
+	for(var i = 4; i--;){
+		props.Quadrants[i].q
+		.attr('fill', props.Quadrants[i].Color)
+		.attr('stroke', props.Border.Color)
+		.attr('stroke-width', props.Border.Thickness)
+		.click(function(){chart.ClearInfoBox();chart.goHome();});
+	}
+
+	var hw = w >> 3, hh = h >> 3;
+	props.Quadrants[0].txt = raphCvs.text(-hw + cx, -hh + cy, props.Quadrants[0].Text)
+	   .click(chart.goHome)
+	   .attr('font-family', 'arial')
+	   .attr('fill', props.Quadrants[0].TextColor);
+	props.Quadrants[1].txt = raphCvs.text(hw + cx, -hh + cy, props.Quadrants[1].Text)
+	   .click(chart.goHome)
+	   .attr('font-family', 'arial')
+	   .attr('fill', props.Quadrants[1].TextColor);
+	props.Quadrants[2].txt = raphCvs.text(hw + cx, hh + cy, props.Quadrants[2].Text)
+	   .click(chart.goHome)
+	   .attr('font-family', 'arial')
+	   .attr('fill', props.Quadrants[2].TextColor);
+	props.Quadrants[3].txt = raphCvs.text(-hw + cx, hh + cy, props.Quadrants[3].Text)
+	   .click(chart.goHome)
+	   .attr('font-family', 'arial')
+	   .attr('fill', props.Quadrants[3].TextColor);
+	// render chart axes
+	QuadChart.RenderAxes(chart);
+
+	// render neighborhoods
+	//QuadChart.RenderNeighborhoods(chart);	
+
+	// render lone data points
+	//QuadChart.RenderDatapoints(chart);
+
+
+	v.Update();
+
 };
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
 QuadChart.RenderAxes = function(chartData){
@@ -686,162 +919,6 @@ QuadChart.RenderDatapoints = function(chart){
 	}
 };
 if(typeof(QuadChart) == 'undefined') QuadChart = {};
-QuadChart.DetermineBaseZoom = function(chart){
-        var axes  = chart.Axes;
-        var cvs   = chart.Canvas;
-        var v     = chart.View;
-
-        var w, h;
-        var dw = w = Math.abs(axes.X.Max - axes.X.Min); dw = dw < cvs.width ? cvs.width   : dw;
-        var dh = h = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < cvs.height ? cvs.height : dh;
-
-	var mean = chart.Props.Quadrants.GetMean(chart);
-
-        var cx = (axes.X.Max + axes.X.Min) / 2;
-        var cy = (axes.Y.Max + axes.Y.Min) / 2;
-
-        var sf = w > h ? w : h;
-
-        if(Math.abs(w - dw) < Math.abs(h - dh)){
-                v.BaseZoom = cvs.width / (sf + 30);
-        }
-        else{
-                v.BaseZoom = cvs.height / (sf + 30);
-        } v.Zoom = v.BaseZoom;
-
-	v.Xoffset = cx;
-	v.Yoffset = cy;
-};
-
-QuadChart.UpdateQuadrants = function(chart, chartZero){
-        var axes  = chart.Axes;
-        var cvs   = chart.Canvas;
-        var v     = chart.View;
-	QuadChart.DetermineBaseZoom(chart);
-
-	for(var i = chart.Props.Quadrants.length; i--;){
-		var quad = chart.Props.Quadrants[i];
-		var mat = 'M1,0,0,1,' + chartZero.x + ',' + chartZero.y;
-		quad.q.transform(mat);
-		quad.txt.transform(mat);
-	}
-
-	// update all datapoint, and neighborhood styles
-	QuadChart.RedrawAllData(chart);
-};
-
-QuadChart.RedrawAllData = function(chart){
-	var dataSet = chart.GetDataSet();
-
-	// remove all the datapoints SVG elements
-	for(var i = dataSet.length; i--;){
-		var di = dataSet[i];
-		di.Element.remove();
-	}
-
-	// reprocess the existing data
-	QuadChart.AddDataPoints(chart, null);
-};
-
-QuadChart.RenderChart = function(chart){
-	// some raphael init/assignment
-	var cvs = document.getElementById(chart.Description.Chart.renderTo);
-	if(!cvs){
-		err('Specified target element not found');
-		return null;
-	}
-	chart.Parent = cvs;	
-
-	chart.ClearInfoBox = function(){
-		if(chart.InfoBox.length){
-			while(chart.InfoBox.length)
-				chart.InfoBox.pop().remove();
-		}
-	};
-
-	var rx = 0, ry = 0;
-	var par = chart.Parent;
-	var raphCvs = chart.Canvas = Raphael(
-		par,
-		rx = (par.clientWidth  - 280),
-		ry = (par.clientHeight - 120)
-	);
-	raphCvs.Top = ry; raphCvs.Left = rx;
-	raphCvs.canvas.style.position = 'absolute';
-	raphCvs.canvas.style.top = '0px';//-cvs.clientHeight + 'px';
-	raphCvs.canvas.style.left = '120px';
-
-	// create the background axes titles
-	var border = 5;
-	var bg = QuadChart.RenderBackground(par, chart, border);
-
-
-	raphCvs.canvas.style.borderBottom = border + 'px solid ' + chart.Axes.X.LineColor;
-	raphCvs.canvas.style.borderLeft = border + 'px solid ' + chart.Axes.Y.LineColor;
-	par.Cvs = raphCvs;
-
-	var props = chart.Props;
-	var axes  = chart.Axes;
-	var cvs   = chart.Canvas;
-	var v     = chart.View;	
-
-	var w, h;
-	var dw = w = Math.abs(axes.X.Max - axes.X.Min); dw = dw < raphCvs.width ? raphCvs.width   : dw;
-	var dh = h = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < raphCvs.height ? raphCvs.height : dh;
-
-	var cx = 0;//(axes.X.Max + axes.X.Min) / 2;
-	var cy = 0;//(axes.Y.Max + axes.Y.Min) / 2;
-
-	QuadChart.DetermineBaseZoom(chart);
-
-	var w = (dw >> 1), 
-	    h = (dh >> 1);
-
-	// render quadrands
-	props.Quadrants[0].q = raphCvs.rect(-w + cx, -h + cy, w, h);
-	props.Quadrants[1].q = raphCvs.rect(cx, -h + cy, w, h);
-	props.Quadrants[2].q = raphCvs.rect(cx, cy, w, h);
-	props.Quadrants[3].q = raphCvs.rect(-w + cx, cy, w, h);
-
-	for(var i = 4; i--;){
-		props.Quadrants[i].q
-		.attr('fill', props.Quadrants[i].Color)
-		.attr('stroke', props.Border.Color)
-		.attr('stroke-width', props.Border.Thickness)
-		.click(function(){chart.ClearInfoBox();chart.goHome();});
-	}
-
-	var hw = w >> 3, hh = h >> 3;
-	props.Quadrants[0].txt = raphCvs.text(-hw + cx, -hh + cy, props.Quadrants[0].Text)
-	   .click(chart.goHome)
-	   .attr('font-family', 'arial')
-	   .attr('fill', props.Quadrants[0].TextColor);
-	props.Quadrants[1].txt = raphCvs.text(hw + cx, -hh + cy, props.Quadrants[1].Text)
-	   .click(chart.goHome)
-	   .attr('font-family', 'arial')
-	   .attr('fill', props.Quadrants[1].TextColor);
-	props.Quadrants[2].txt = raphCvs.text(hw + cx, hh + cy, props.Quadrants[2].Text)
-	   .click(chart.goHome)
-	   .attr('font-family', 'arial')
-	   .attr('fill', props.Quadrants[2].TextColor);
-	props.Quadrants[3].txt = raphCvs.text(-hw + cx, hh + cy, props.Quadrants[3].Text)
-	   .click(chart.goHome)
-	   .attr('font-family', 'arial')
-	   .attr('fill', props.Quadrants[3].TextColor);
-	// render chart axes
-	QuadChart.RenderAxes(chart);
-
-	// render neighborhoods
-	//QuadChart.RenderNeighborhoods(chart);	
-
-	// render lone data points
-	//QuadChart.RenderDatapoints(chart);
-
-
-	v.Update();
-
-};
-if(typeof(QuadChart) == 'undefined') QuadChart = {};
 QuadChart.RenderNeighborhood = function(chart, hood){
 	var cd = chart;
 	var props = cd.Props;
@@ -991,73 +1068,3 @@ QuadChart.RenderNeighborhoods = function(chart){
 	for(var i = hoods.length; i--;){
 	}
 };
-function SpatialTable(cellSize){
-        var t = this;
-	t.Max = {x: null, y: null};
-	t.Min = {x: null, y: null};
-
-        var hash = function(point){
-                var x = Math.floor(point.x / cellSize);
-                var y = Math.floor(point.y / cellSize);
-
-                return x + '-' + y;             
-        }       
-
-        t.Insert = function(point, value, onBoundsChanged){
-                var key = hash(point);
-                var cell = (t[key] = t[key] || []);
-		var boundsChanged = false;
-
-		// update the min and max bounds of the
-		// occupied area.
-		if(t.Max.x == null || point.x > t.Max.x){ t.Max.x = point.x; boundsChanged = true; }
-		if(t.Max.y == null || point.y > t.Max.y){ t.Max.y = point.y; boundsChanged = true; }
-		if(t.Min.x == null || point.x < t.Min.x){ t.Min.x = point.x; boundsChanged = true; }
-		if(t.Min.y == null || point.y < t.Min.y){ t.Min.y = point.y; boundsChanged = true; }
-
-		if(boundsChanged) onBoundsChanged();
-
-                cell.push(value);
-                value.SpaceKey = key; // added for easy deletion
-        }
-
-        t.Get = function(point, radius){
-                var values = [];
-        
-                var circleX   = Math.floor(point.x / cellSize);
-                var circleY   = Math.floor(point.y / cellSize);
-                var circleRad = Math.ceil(radius / cellSize);
-                var radSqr = circleRad * circleRad;
-
-                for(var i = circleX - circleRad; i < circleX + circleRad; i++)
-                for(var j = circleY - circleRad; j < circleY + circleRad; j++){
-                        // skip if this coord is outside of the query circle's
-                        // radius
-                        var dx = i - circleX, dy = j - circleY;
-                        if(dx * dx + dy * dy > radSqr)
-                                continue;               
-
-                        var cell = t[i + '-' + j];      
-                        if(cell){
-                                values = values.concat(cell);
-                        }
-                }               
-
-                return values;
-        }
-
-        // arg can be either a point, or a value inserted into the
-        // data structure
-        t.Remove = function(arg){
-                if(arg.SpaceKey){
-                        var bucket = t[arg.SpaceKey];
-                        var i = bucket.indexOf(arg);
-                        if(i) bucket = bucket.splice(i, 1);
-                }
-                else{
-                        var key = hash(arg);
-                        t[key] = [];
-                }
-        }
-}
-

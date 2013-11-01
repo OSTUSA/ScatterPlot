@@ -8,6 +8,9 @@ QuadChart.RemoveDataPoint = function(chart, di){
 	// remove the datapoint SVG element
 	di.Element.remove();
 
+	// remove from the space table
+	space.Remove(di);
+
 	// remove the datapoint from the set
 	dataSet.shift(dataSet.indexOf(di));
 
@@ -148,8 +151,10 @@ QuadChart.AddDataPoints = function(chart, newData){
 
 	// Dynamically resize the axes
 	QuadChart.DetermineAxesScales(chart);
-
+	QuadChart.DetermineBaseZoom(chart);
 	chart.SetDataSet(dataSet);
+
+	return dataSet;
 };
 QuadChart.DetermineNeighborhoods = function(chart){
 	var hoods   = chart.GetHoods() || [];

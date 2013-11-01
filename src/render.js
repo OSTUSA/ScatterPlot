@@ -58,7 +58,8 @@ QuadChart.RedrawAllData = function(chart){
 
 QuadChart.RenderChart = function(chart){
 	// some raphael init/assignment
-	var cvs = document.getElementById(chart.Description.Chart.renderTo);
+	var chtTemp = chart.Description.Chart;
+	var cvs = document.getElementById(chtTemp.renderTo) || chtTemp.renderTo;
 	if(!cvs){
 		err('Specified target element not found');
 		return null;
