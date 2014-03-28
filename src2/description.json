@@ -1,0 +1,21 @@
+{
+	axes: {
+		x: {
+
+		},
+		y: {
+
+		}
+	},
+	key: [
+		{
+			title: '',
+			colors: {
+				fill: '',
+				stroke: ''
+			}
+		}
+	],
+	hoodRadius: 5,
+	data: []
+}

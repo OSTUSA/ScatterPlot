@@ -147,7 +147,7 @@ QuadChart.Chart = function(description){
                 X.cvs.Scale.attr('stroke-width', 2 / this.Zoom);
 
                 for (var i = X.cvs.Ticks.length; i--;) {
-                    var t = X.cvs.Ticks[i], r = t.R;// += 0.01;
+                    var t = X.cvs.Ticks[i], r = 0;// += 0.01;
                     var m = matrix([s * cos(r) * 0.75, sin(r) * 1.25, -s * sin(r) * 0.75, cos(r) * 1.25, t.X, t.Y]);
 
                     t.Ele.transform(m);

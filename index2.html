@@ -1,0 +1,143 @@
+<html>
+	<head>
+		<script type="text/javascript" src="scripts/raphael.min.js"></script>
+		<script type="text/javascript" src="src2/matrix.js"></script>
+		<script type="text/javascript" src="src2/spatialTable.js"></script>
+		<script type="text/javascript" src="src2/linkedList.js"></script>
+		<script type="text/javascript" src="src2/quadData.js"></script>
+		<script type="text/javascript" src="src2/quadAnimation.js"></script>
+		<script type="text/javascript" src="src2/quadCamera.js"></script>
+		<script type="text/javascript" src="src2/quadBackground.js"></script>
+		<script type="text/javascript" src="src2/quadDataPoint.js"></script>
+		<script type="text/javascript" src="src2/quadHood.js"></script>
+		<script type="text/javascript" src="src2/quadAxes.js"></script>
+		<script type="text/javascript" src="src2/quadView.js"></script>
+		<script type="text/javascript" src="src2/quadChart.js"></script>
+		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.min.js"></script>
+		<script type="text/javascript">
+			var bsData = function(i, minX, maxX, minY, maxY){
+				var data = [];
+				for(;i--;){
+					data.push({
+						Serial: 'A' + i,
+						Notes: 'Notes for A' + i + 'abcde fghi zklm nop',
+						X: Math.random() * (maxX - minX) + minX,
+						Y: Math.random() * (maxY - minY) + minY,
+						Neighborhood: -1
+					});
+				}
+				return data;
+			}
+
+			var BsChartData = bsData(1, -100, 100, -100, 100); 
+
+
+			function QuadCtrl($scope){
+				$scope.DataSet = BsChartData;
+				
+				$scope.Clicked = function(){
+					BsChartData.push(Math.random());
+				}
+
+				$scope.$watch('DataSet', function(){
+					// TODO finish addition of data to the chart
+					//$scope.DataSet = [];
+					//alert('Yo! it changed');
+				});
+			}
+		</script>
+		<style>
+			input, label{
+				float: left;
+			}
+
+		</style>
+	</head>
+
+	<body style="background:#fff" ng-app>
+		<div style="height:40px" ng-controller="QuadCtrl">
+			<label>X:</label><input id="xMean" type="text"></input>
+			<label>Y:</label><input id="yMean" type="text"></input>
+			<input type="button" value="Set" onclick="SetZero()"></input>
+			<input type="button" value="Add" ng-click="Clicked()"></input>
+		</div>
+		<div id="quadChart" style="position:relative;width:80%;height:80%">
+
+		</div>
+		<input type="checkbox" id="keepAdding">Add datapoints </input>
+		<script type="text/javascript">
+		var dat = [];
+		for(var i=50; i--; dat.push({X: Math.random() * 200 - 100, Y: Math.random() * 200 - 100, Neighborhood: -1, Serial: '123123', Notes: 'asdfasdfasdf'}));
+
+			var chartKey = [
+				{
+					title: 'Outlying',
+					color: '#bbbbbb'
+				},
+				{
+					title: 'Retire',
+					color: '#d99a00'
+				},
+				{
+					title: 'Replace',
+					color: '#db5129'
+				},
+				{
+					title: 'Retain',
+					color: '#97c600'
+				},
+				{
+					title: 'Relocate',
+					color: '#4a99a5'
+				}
+			];
+
+			var chart = QuadChart('quadChart', {
+				axes:{
+					colors: {
+						tick: '#e2e2e2',
+						text: '#969696'
+					},
+					x: {
+						title: 'Utilization',
+						tickInterval: 10
+					},
+					y: {
+						title: 'Cost Per Hour',
+						tickInterval: 10
+					}
+				},
+				quadrants: {
+					colors: {
+						background: [
+							'#f7fafb',
+							'#fafcf2',
+							'#fcf7f4',
+							'#fdfaf2'
+						],
+						text: [
+							'#4a99a5',
+							'#97c600',
+							'#db5129',
+							'#d99a00'
+						],
+						dataFill: [
+							'#4a99a5',
+							'#97c600',
+							'#db5129',
+							'#d99a00'
+						]
+					},
+					title: [
+						'Relocate',
+						'Retain',
+						'Replace',
+						'Retire'
+					]
+				},
+				key: chartKey,
+				hoodRadius: 5
+			});
+		</script>
+	</body>
+</html>
