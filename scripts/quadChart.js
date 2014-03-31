@@ -84,7 +84,7 @@ var rot2d = function(theta, size){
 				for(var i = 0; i < this.length; i++){
 					var col = this[i], len = col.length > 2 ? 2 : col.length;
 					for(var j = 0; j < len;)
-						 str += col[j] + (j++ == len - 1 ? '' : ',');
+						 str += col[j].toFixed(3) + (j++ == len - 1 ? '' : ',');
 					str += (i == this.length - 1 ? '' : ',');
 				}
 				break;
@@ -257,6 +257,7 @@ var QuadAxes = function(id, config, dataSpace, cam){
 				resizeAxisElement(paper, calcDimensions(axis));
 			}
 		};
+		paper.canvas.setAttribute('preserveAspectRatio', 'none');
 
 		resizeAxisElement(paper, dimensions);
 
@@ -1169,6 +1170,7 @@ var QuadView = function(id, config, dataSpace, cam){
 	var paper = Raphael(
 		parentEle, parentWidth() - 280, parentHeight() - 120
 	);
+	paper.canvas.setAttribute('preserveAspectRatio', 'none');
 	var cvs = paper.canvas;
 
 //-----------------------------------------------------------------------------

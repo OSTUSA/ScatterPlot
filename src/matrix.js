@@ -60,7 +60,7 @@ var rot2d = function(theta, size){
 				for(var i = 0; i < this.length; i++){
 					var col = this[i], len = col.length > 2 ? 2 : col.length;
 					for(var j = 0; j < len;)
-						 str += col[j] + (j++ == len - 1 ? '' : ',');
+						 str += col[j].toFixed(3) + (j++ == len - 1 ? '' : ',');
 					str += (i == this.length - 1 ? '' : ',');
 				}
 				break;

@@ -133,6 +133,7 @@ var QuadAxes = function(id, config, dataSpace, cam){
 				resizeAxisElement(paper, calcDimensions(axis));
 			}
 		};
+		paper.canvas.setAttribute('preserveAspectRatio', 'none');
 
 		resizeAxisElement(paper, dimensions);
 

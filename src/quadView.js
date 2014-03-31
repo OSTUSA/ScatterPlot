@@ -22,6 +22,7 @@ var QuadView = function(id, config, dataSpace, cam){
 	var paper = Raphael(
 		parentEle, parentWidth() - 280, parentHeight() - 120
 	);
+	paper.canvas.setAttribute('preserveAspectRatio', 'none');
 	var cvs = paper.canvas;
 
 //-----------------------------------------------------------------------------
