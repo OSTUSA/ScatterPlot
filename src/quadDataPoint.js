@@ -130,12 +130,12 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 	var quadIndex = inQuadrant([point.X, point.Y]);
 	var infoBox = pointInfoBox();
 
-	var scaledPos = { 
+	point.scaledPos = { 
 		x: point.NormX * paper.width,
 		y: point.NormY * paper.height
 	};
 
-	var element = paper.circle(scaledPos.x.toFixed(2), scaledPos.y.toFixed(2), 2)
+	var element = paper.circle(point.scaledPos.x.toFixed(2), point.scaledPos.y.toFixed(2), 2)
 				.attr('fill', quadrants.colors.dataFill[quadIndex])
 				.attr('stroke', '#ececfb')
 				.attr('stroke-width', 3)
@@ -159,7 +159,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 	};
 //-----------------------------------------------------------------------------
 	var reassign = function(){
-		var quadIndex = inQuadrant([scaledPos.x, scaledPos.y]);
+		var quadIndex = inQuadrant([point.scaledPos.x, point.scaledPos.y]);
 		if(!element)
 			console.log('Oh no...');
 		element.attr('fill', quadrants.colors.dataFill[quadIndex]);
