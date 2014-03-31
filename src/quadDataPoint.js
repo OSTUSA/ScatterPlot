@@ -124,7 +124,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 	var focus = function(){
 		QUAD_LAST_POINT = this;
 		info.show();
-		cam.jump(point.scaledPos.x, point.scaledPos.y);
+		cam.move(point.X, point.Y);
 	};
 //-----------------------------------------------------------------------------
 	var quadIndex = inQuadrant([point.X, point.Y]);
@@ -135,7 +135,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 		y: point.NormY * paper.height
 	};
 
-	var element = paper.circle(point.scaledPos.x.toFixed(2), point.scaledPos.y.toFixed(2), 2)
+	var element = paper.circle(point.X.toFixed(2), point.Y.toFixed(2), 2)
 				.attr('fill', quadrants.colors.dataFill[quadIndex])
 				.attr('stroke', '#ececfb')
 				.attr('stroke-width', 3)
@@ -159,7 +159,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 	};
 //-----------------------------------------------------------------------------
 	var reassign = function(){
-		var quadIndex = inQuadrant([point.scaledPos.x, point.scaledPos.y]);
+		var quadIndex = inQuadrant([point.X, point.Y]);
 		if(!element)
 			console.log('Oh no...');
 		element.attr('fill', quadrants.colors.dataFill[quadIndex]);

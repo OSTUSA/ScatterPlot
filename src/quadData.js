@@ -10,6 +10,7 @@ var QuadData = function(config, onBoundsChanged){
 	var hoods = [];
 	var hoodRadius = config.hoodRadius;
 	var mean = {x: 0, y: 0};
+	var standardDeviation = {x: 0, y: 0};
 //-----------------------------------------------------------------------------
 //    ___     _          _          __              _   _             
 //   | _ \_ _(_)_ ____ _| |_ ___   / _|_  _ _ _  __| |_(_)___ _ _  ___
@@ -19,6 +20,11 @@ var QuadData = function(config, onBoundsChanged){
 	var floatingAvg = function(iBar, n, jBar, k){
 		return (iBar * n) / (n + k) + (jBar * k) / (n + k);
 	};
+//-----------------------------------------------------------------------------
+	var floatingStdDev = function(iStdDev, n, jVar, k, mean){
+		var iVar = iStdDev * iStdDev;
+		return Math.sqrt((iVar * n) / (n + k) + (jVar * k) / (n + k));
+	}
 //-----------------------------------------------------------------------------
 	var onRender = function(points, hoods){
 		var node = _onRenderCallbacks.first;
@@ -43,7 +49,16 @@ var QuadData = function(config, onBoundsChanged){
 		var changeLen = removing ? -data.length : data.length;
 
 		mean.x = floatingAvg(mean.x, oldLen, newDataAvg.x, changeLen);
-		mean.y = floatingAvg(mean.x, oldLen, newDataAvg.y, changeLen);
+		mean.y = floatingAvg(mean.y, oldLen, newDataAvg.y, changeLen);
+	};
+//-----------------------------------------------------------------------------
+	var updateStdDev = function(data, newDataVar, removing){
+		var oldLen = allData.length;
+		var changeLen = removing ? -data.length : data.length;
+		var stddev = standardDeviation;
+
+		stddev.x = floatingStdDev(stddev.x, oldLen, newDataVar.x, changeLen);
+		stddev.y = floatingStdDev(stddev.y, oldLen, newDataVar.y, changeLen);
 	};
 //-----------------------------------------------------------------------------
 	var createNewHood = function(di){
@@ -161,6 +176,9 @@ var QuadData = function(config, onBoundsChanged){
 		var newDataAvg = {
 			x: 0, y: 0
 		};
+		var newDataStdDev = {
+			x: 0, y: 0
+		};
 		var boundsChanged = false;
 
 		// add all the data points to the space
@@ -182,6 +200,11 @@ var QuadData = function(config, onBoundsChanged){
 		newDataAvg.y /= data.length;
 
 		updateMean(data, newDataAvg, false);
+
+		// calculated the variance from the newly updated mean
+		var variance = QuadStats.variance(data, mean);
+		updateStdDev(data, variance, false);
+
 		allData = allData.concat(data);
 
 		// kick off bounds changed event
@@ -211,6 +234,7 @@ var QuadData = function(config, onBoundsChanged){
 			min: function(){ return dataSpace.Min.y; }
 		},
 		mean: function(){ return mean; },
+		standardDeviation: function(){ return standardDeviation; },
 		allData:  function(){ return allData; },
 		allHoods: function(){ return hoods; }
 	};

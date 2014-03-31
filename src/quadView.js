@@ -33,8 +33,8 @@ var QuadView = function(id, config, dataSpace, cam){
 //-----------------------------------------------------------------------------
 	var goHome = function(){
 		var m = dataSpace.mean();
-		//cam.goHome(paper, dataSpace);
-		cam.jump(m.x * 3, m.y * 16, 1.2);
+		cam.goHome(paper, dataSpace);
+		//cam.move(m.x * 3, m.y * 16, 1.2);
 		//var r = function(){ return (Math.random() - 0.5) * 200; };
 		//cam.move(r(), r(), 8);
 	};
