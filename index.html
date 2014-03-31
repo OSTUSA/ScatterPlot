@@ -1,8 +1,22 @@
 <html>
 	<head>
-		<script type="text/javascript" src="scripts/raphael.min.js"></script>
-		<script type="text/javascript" src="scripts/quadChart.js"></script>
 		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.min.js"></script>
+		<script type="text/javascript" src="scripts/raphael.min.js"></script>
+		<!--<script type="text/javascript" src="scripts/jquery-1.11.0.min.js"></script>
+		<script type="text/javascript" src="src/matrix.js"></script>
+		<script type="text/javascript" src="src/spatialTable.js"></script>
+		<script type="text/javascript" src="src/linkedList.js"></script>
+		<script type="text/javascript" src="src/quadData.js"></script>
+		<script type="text/javascript" src="src/quadAnimation.js"></script>
+		<script type="text/javascript" src="src/quadCamera.js"></script>
+		<script type="text/javascript" src="src/quadBackground.js"></script>
+		<script type="text/javascript" src="src/quadDataPoint.js"></script>
+		<script type="text/javascript" src="src/quadHood.js"></script>
+		<script type="text/javascript" src="src/quadAxes.js"></script>
+		<script type="text/javascript" src="src/quadView.js"></script>
+		<script type="text/javascript" src="src/quadChart.js"></script>-->
+		<script type="text/javascript" src="scripts/quadChart.js"></script>
+		<script type="text/javascript" src="data.js"></script>
 		<script type="text/javascript">
 			var bsData = function(i, minX, maxX, minY, maxY){
 				var data = [];
@@ -31,7 +45,7 @@
 				$scope.$watch('DataSet', function(){
 					// TODO finish addition of data to the chart
 					//$scope.DataSet = [];
-					alert('Yo! it changed');
+					//alert('Yo! it changed');
 				});
 			}
 		</script>
@@ -55,235 +69,80 @@
 		</div>
 		<input type="checkbox" id="keepAdding">Add datapoints </input>
 		<script type="text/javascript">
-			// TODO
-			/*
-			var cvs = Raphael(10, 10, 320, 200);
-			var circle = cvs.circle(50, 40, 10);
-			circle.attr('fill', '#f00');
-			circle.attr('stroke', '#fff');
-			*/
-			function SetZero(){
-				var xtxt = document.getElementById('xMean');
-				var ytxt = document.getElementById('yMean');
-				
-				var X = parseFloat(xtxt.value);
-				var Y = parseFloat(ytxt.value);
+		var dat = [];
+		for(var i=50; i--; dat.push({X: Math.random() * 200 - 100, Y: Math.random() * 200 - 100, Neighborhood: -1, Serial: '123123', Notes: 'asdfasdfasdf'}));
 
-				QuadChart.UpdateQuadrants(chart, {x:X,y:Y});
-			}
-
-			var datapointInfo = function(cvs, view, info, di){
-				var x = 0, y = 0, s = 5 / view.Zoom;
-				var tri = 'M'+x+','+y+'l-2,4l,4,0';
-				x -= 50;
-				y += 4;
-				var rectangle = 'M' + x + ',' + y + 'm0,5' +
-				                'c0,-5,0,-5,5,-5 l85,0 c5,0,5,0,5,5' + 
-				                'l0,10' + 
-				                'c0,5,0,5,-5,5 l-85,0 c-5,0,-5,0,-5,-5' +
-				                'l0,-10';
-
-				info.push(cvs.path(tri + rectangle + 'Z')
-				             .attr('fill', '#000')
-				             .attr('font-weight', 'bold')
-				             .attr('opacity', 0.5)
-				             .transform('M' + s + ',0, 0,' + s + ',' + di.X + ',' + di.Y)
-				);
-
-				info.push(cvs.text(x + 2, y + 3, 'Asset Serial # ' + di.Serial)
-				             .attr('fill', '#fff')
-				             .attr('text-anchor', 'start')
-				             .attr('font-weight', 'bold')
-				             .attr('font-size', '4px')
-				             .transform('M' + s + ',0, 0,' + s + ',' + di.X + ',' + di.Y)
-				);
-
-				info.push(cvs.text(x + 2, y + 10, 'Utilization     ' + Math.ceil(di.X) + '%')
-				             .attr('fill', '#fff')
-				             .attr('text-anchor', 'start')
-				             .attr('font-weight', 'normal')
-				             .attr('font-size', '3px')
-				             .transform('M' + s + ',0, 0,' + s + ',' + di.X + ',' + di.Y)
-				);
-
-				info.push(cvs.text(x + 2, y + 15, 'Cost per hour    $' + Math.ceil(di.Y))
-				             .attr('fill', '#fff')
-				             .attr('text-anchor', 'start')
-				             .attr('font-weight', 'normal')
-				             .attr('font-size', '3px')
-				             .transform('M' + s + ',0, 0,' + s + ',' + di.X + ',' + di.Y)
-				);
-
-				x += 55;
-				info.push(cvs.text(x, y + 3, 'Asset Notes')
-				             .attr('fill', '#fff')
-				             .attr('text-anchor', 'start')
-				             .attr('font-size', '4px')
-				             .transform('M' + s + ',0, 0,' + s + ',' + di.X + ',' + di.Y)
-				);
-
-				var t = null;
-				info.push(t = cvs.text(x, y + 10, '')
-				             .attr('fill', '#fff')
-				             .attr('text-anchor', 'start')
-				             .attr('font-weight', 'normal')
-				             .attr('font-size', '3px')
-				             .transform('M' + s + ',0, 0,' + s + ',' + di.X + ',' + di.Y)
-				);
-
-				// wrap text
-				var words = di.Notes.split(" ");
-				var tempText = "";
-				for (var i=0; i<words.length; i++) {
-					t.attr("text", tempText + " " + words[i]);
-					if (t.getBBox().width > 40 * s) {
-						tempText += "\n" + words[i];
-					} else {
-						tempText += " " + words[i];
-					}
+			var chartKey = [
+				{
+					title: 'Outlying',
+					color: '#bbbbbb'
+				},
+				{
+					title: 'Retire',
+					color: '#d99a00'
+				},
+				{
+					title: 'Replace',
+					color: '#db5129'
+				},
+				{
+					title: 'Retain',
+					color: '#97c600'
+				},
+				{
+					title: 'Relocate',
+					color: '#4a99a5'
 				}
-				t.attr("text", tempText.substring(1));
-			};
+			];
 
-			var renderGroup = function(cvs, datapoints, color){
-
-				// determine the shape type to be rendered
-				var isSquare = false;
-				for(var i = datapoints.length; i--;){
-					var x = datapoints[i].X; var y = datapoints[i].Y;
-					if(!datapoints.Quadrant.isPointInside(x, y)){
-						isSquare = true;
-						break;
-					}
-				}
-
-				var shape = null;
-
-				if(isSquare){
-					var x = datapoints.X(), y = datapoints.Y(), r = 5;
-					shape = cvs.rect(x - r, y - r, r * 2, r * 2)
-						.attr('fill', '#bbbbbb')
-	                	.attr('stroke', '#ececfb')
-						.attr('stroke-width', '3');
-				}
-				else{
-					shape = cvs.circle(datapoints.X(),datapoints.Y(),datapoints.Radius)
-						.attr('fill', color)
-	                	.attr('stroke', '#ececfb')
-						.attr('stroke-width', '3');
-				}
-				var txt = cvs.text(datapoints.X(), datapoints.Y(), datapoints.length + '')
-					.attr('stroke', '#ffffff')
-					.attr('stroke-width', '1')
-					.attr('fill', '#ffffff');
-				return {Shape: shape, Text: txt};	
-			};
-
-			function DiagText(cvs, di){
-				var txt = cvs.text(di.X, di.Y, di.Neighborhood + '')
-				             .attr('stroke', '#f00')
-				             .attr('stroke-width', '0')
-				             .attr('fill', '#f00');
-			}
-
-			var chart = new QuadChart.Chart({
-				Chart: {
-					renderTo: 'quadChart',
-					borderColor: '#ececfb',
-					borderWidth: 3,
-					dataSet: bsData(10, 0, 100, 0, 100),
-					xAxes: {
+			var chart = QuadChart('quadChart', {
+				axes:{
+					colors: {
+						tick: '#e2e2e2',
+						text: '#969696'
+					},
+					x: {
 						title: 'Utilization',
-						lineColor: '#e2e2e2',
-						textColor: '#969696'
+						tickInterval: 50
 					},
-					yAxes: {
+					y: {
 						title: 'Cost Per Hour',
-						lineColor: '#e2e2e2',
-						textColor: '#969696'
+						tickInterval: 20
+					}
+				},
+				quadrants: {
+					colors: {
+						background: [
+							'#f7fafb',
+							'#fafcf2',
+							'#fcf7f4',
+							'#fdfaf2'
+						],
+						text: [
+							'#4a99a5',
+							'#97c600',
+							'#db5129',
+							'#d99a00'
+						],
+						dataFill: [
+							'#4a99a5',
+							'#97c600',
+							'#db5129',
+							'#d99a00'
+						]
 					},
-					Quadrants: [
-						{
-							Color: '#f7fafb',
-							Text: 'Relocate',
-							TextColor: '#4a99a5',
-							RenderPoint: function(cvs, datapoint){
-								//DiagText(cvs, datapoint);
-								return cvs.circle(datapoint.X,datapoint.Y,2)
-									.attr('fill', '#4a99a5')
-       	 						    .attr('stroke', '#ececfb')
-									.attr('stroke-width', '3');
-							},
-							PointInfo: datapointInfo,
-							RenderGroup: function(cvs, datapoints){		
-								return renderGroup(cvs, datapoints, '#4a99a5');
-							}
-						},
-						{
-							Color: '#fafcf2',
-							Text: 'Retain',
-							TextColor: '#97c600',
-							RenderPoint: function(cvs, datapoint){
-								//DiagText(cvs, datapoint);
-								return cvs.circle(datapoint.X,datapoint.Y,2)
-									.attr('fill', '#97c600')
-       	 						     .attr('stroke', '#ececfb')
-									.attr('stroke-width', '3');
-							},
-							PointInfo: datapointInfo,
-							RenderGroup: function(cvs, datapoints){		
-								return renderGroup(cvs, datapoints, '#97c600');
-							}
-						},
-						{
-							Color: '#fcf7f4',
-							Text: 'Replace',
-							TextColor: '#db5129',
-							RenderPoint: function(cvs, datapoint){
-								//DiagText(cvs, datapoint);
-								return cvs.circle(datapoint.X,datapoint.Y,2)
-									.attr('fill', '#db5129')
-       	 						    .attr('stroke', '#ececfb')
-									.attr('stroke-width', '3');
-							},
-							PointInfo: datapointInfo,
-							RenderGroup: function(cvs, datapoints){		
-								return renderGroup(cvs, datapoints, '#db5129');
-							}
-						},
-						{
-							Color: '#fdfaf2',
-							Text: 'Retire',
-							TextColor: '#d99a00',
-							RenderPoint: function(cvs, datapoint){
-								//DiagText(cvs, datapoint);
-								return cvs.circle(datapoint.X,datapoint.Y,2)
-									.attr('fill', '#d99a00')
-       	 						    .attr('stroke', '#ececfb')
-									.attr('stroke-width', '3');
-							},
-							PointInfo: datapointInfo,
-							RenderGroup: function(cvs, datapoints){		
-								return renderGroup(cvs, datapoints, '#d99a00');
-							}
-						}
+					title: [
+						'Relocate',
+						'Retain',
+						'Replace',
+						'Retire'
 					]
-				}
+				},
+				key: chartKey,
+				hoodRadius: 5
 			});
 
-			var adding = false;
-			var check = document.getElementById('keepAdding');
-			check.onchange = function(){
-				adding = this.checked;
-			};
-
-			setInterval(function(){
-				if(adding)
-					QuadChart.AddDataPoints(chart, bsData(1, -100, 100, -100, 100))
-
-				
-			}, 50);
-
+			//$.ajax
 		</script>
 	</body>
 </html>

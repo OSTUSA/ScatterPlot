@@ -1,3 +1,1260 @@
+function ll(){
+  this.last = this.first = null;
+
+  var remove = function(){
+    var t = this, l = t.list;
+    l.first = (t == l.first ? t.next : l.first);
+    l.last  = (t == l.last  ? t.prev : l.last);
+    if(t.prev) t.prev.next = t.next;
+    if(t.next) t.next.prev = t.prev;
+    return t.value;
+  };
+  
+  this.add = function(value){
+    node = {list: this, value: value, next: null, prev: this.last, remove: remove};
+    this.first = this.first ? this.first : node;
+    if(this.last) this.last.next = node;
+    this.last = node;
+    return node;
+  };
+  
+  this.remove = function(node){ node.remove; };
+  
+  return this;
+}
+//     ___ _     _          _   _        _                  
+//    / __| |___| |__  __ _| | | |_  ___| |_ __  ___ _ _ ___
+//   | (_ | / _ \ '_ \/ _` | | | ' \/ -_) | '_ \/ -_) '_(_-<
+//    \___|_\___/_.__/\__,_|_| |_||_\___|_| .__/\___|_| /__/
+//                                        |_|               
+var rot2d = function(theta, size){
+		// construct a result matrix
+	var r = new Array(size);
+	for(var i = size; i--; ){
+		r[i] = Array
+			.apply(null, new Array(r.length))
+			.map(Number.prototype.valueOf,0);
+	}
+
+	var c = Math.cos(theta), s = Math.sin(theta);
+
+	r[0][0] = c; r[1][0] = -s;
+	r[0][1] = s; r[1][1] =  c;
+	r[2][2] = 1;
+
+	return r;
+};
+//-----------------------------------------------------------------------------
+//    __  __     _   _            _    
+//   |  \/  |___| |_| |_  ___  __| |___
+//   | |\/| / -_)  _| ' \/ _ \/ _` (_-<
+//   |_|  |_\___|\__|_||_\___/\__,_/__/
+//                                     
+([]).__proto__.X = function(m){
+	// make sure m's row matches this's column length
+	if(!(m[0] && m[0].length == this.length)) return null;
+	
+	// construct a result matrix
+	var r = new Array(m.length);
+	for(var i = r.length; i--; r[i] = new Array(this.length));
+
+	// multiply
+	for(var i = 0; i < r.length; i++){
+		for(var j = 0; j < r[0].length; j++){
+			r[i][j] = 0;
+			for(var k = 0; k < r[0].length; r[i][j] += this[k][j] * m[i][k++]);
+		}
+	}
+
+	return r;
+};
+//-----------------------------------------------------------------------------
+([]).__proto__.translate = function(position){
+	for(var i = 0; i < position.length; i++)
+		this[this.length - 1][i] = position[i];
+	return this;
+};
+//-----------------------------------------------------------------------------
+([]).__proto__.serialize = function(args){
+	var str = '';
+	if(typeof(args) == 'string'){
+		switch(args){
+			case 'svg':
+				str = 'M';
+				for(var i = 0; i < this.length; i++){
+					var col = this[i], len = col.length > 2 ? 2 : col.length;
+					for(var j = 0; j < len;)
+						 str += col[j] + (j++ == len - 1 ? '' : ',');
+					str += (i == this.length - 1 ? '' : ',');
+				}
+				break;
+		}
+	}
+	return str;
+};
+var QuadAnim = {
+	_anims: [],
+	setInterval: function(callback, frequency){
+		var out = -1;
+		this._anims.push(out = setInterval(callback, frequency));
+		return out;
+	},
+	clearInterval: function(id){
+		this._anims.splice(this._anims.indexOf(id), 1);
+		clearInterval(id);
+	},
+	clearAll: function(){
+		while(this._anims.length){
+			clearInterval(this._anims.pop());
+		}
+	},
+	animateUntil: function(callback, conditionFunc){
+		var t = this;
+		var id = t.setInterval(function(){
+			callback();
+			if(conditionFunc()){
+				t._anims.splice(t._anims.indexOf(id), 1);
+				clearInterval(id);
+				return;
+			}
+		}, 16);
+
+		return id;
+	}
+};
+var QuadAxes = function(id, config, dataSpace, cam){
+//   __   __        _      _    _        
+//   \ \ / /_ _ _ _(_)__ _| |__| |___ ___
+//    \ V / _` | '_| / _` | '_ \ / -_|_-<
+//     \_/\__,_|_| |_\__,_|_.__/_\___/__/
+//                                       
+	var parentEle = document.getElementById(id);
+
+	if(!parentEle)
+		throw new UserException('Element "' + id + '" could not be located');
+
+//-----------------------------------------------------------------------------
+//    ___     _          _          __              _   _             
+//   | _ \_ _(_)_ ____ _| |_ ___   / _|_  _ _ _  __| |_(_)___ _ _  ___
+//   |  _/ '_| \ V / _` |  _/ -_) |  _| || | ' \/ _|  _| / _ \ ' \(_-<
+//   |_| |_| |_|\_/\__,_|\__\___| |_|  \_,_|_||_\__|\__|_\___/_||_/__/
+//                            
+	var parentHeight = function(){ return parentEle.clientHeight; };
+//-----------------------------------------------------------------------------
+	var parentWidth = function(){ return parentEle.clientHeight; };
+//-----------------------------------------------------------------------------
+	var viewWidth = function(){
+		return parentEle.clientWidth - 280;
+	}
+//-----------------------------------------------------------------------------
+	var viewHeight = function(){
+		return parentEle.clientHeight - 120;
+	}
+//-----------------------------------------------------------------------------
+
+	var calcDimensions = function(axis){
+		var dimensions = {
+			top: 0,
+			left: 60,
+			width: viewWidth(),
+			height: viewHeight()
+		}
+
+		// determine bounds, and dimensions
+		switch(axis){
+			case 'x':
+				dimensions.height = 60;
+				dimensions.left += 60;
+				dimensions.top  += parentHeight() - 116;
+				break;
+			case 'y':
+				dimensions.width = 60;
+				break;
+		}
+
+		return dimensions;
+	};
+//-----------------------------------------------------------------------------
+	var resizeAxisElement = function(paper, dimensions){
+		// set styles needed for 
+		with(paper.canvas.style){
+			position = 'absolute';
+			zIndex = 1000;
+			top = dimensions.top + 'px'; left = dimensions.left + 'px';
+		}
+
+		paper.setSize(dimensions.width, dimensions.height);
+	};
+//-----------------------------------------------------------------------------
+	var renderScale = function(paper, min, delta, tall){
+		var scale = '', unit = tall ? '$' : '%';
+		var ticks = [];
+		var interval = !tall ? config.axes.x.tickInterval : config.axes.y.tickInterval;
+		var steps = Math.ceil(delta / interval);
+
+		if(delta != 0)
+		for(var i = steps; i--;){
+			var p = Math.floor(min + i * interval) - 2;
+
+			if(tall){
+				scale += 'M40,' + p;
+				scale += 'l15,0';				
+			}
+			else{
+				scale += 'M' + p + ',5';
+				scale += 'l0,15';
+			}
+
+			ticks.push({
+				element: paper.text(0, 0, (tall ? unit : '') + Math.ceil(p) + (!tall ? unit : ''))
+				       .attr('text-anchor', 'end')
+				       .attr('fill', config.axes.colors.text),
+				X: (tall ? 30 : p),
+				Y: (tall ? p : 30),
+				R: (tall ? 0 : -Math.PI / 8)
+			});
+		}
+		ticks.scalePath = paper.path(scale).attr('stroke', config.axes.colors.tick); // finally, draw the ticks
+		ticks.scalePath.Tag = 'scale path for ' + (tall ? 'y ' : 'x ');
+
+		// provides a method to clean up existing scale
+		// so that the scale and text can be redrawn for new
+		// bounds on this axis.
+		ticks.remove = function(){
+			paper.clear();
+		}
+
+		return ticks;
+	}
+//-----------------------------------------------------------------------------
+	var createAxis = function(axis){
+		// todo, set up vars that are shared between axes
+		var dimensions = calcDimensions(axis);
+
+		var min, max, dx = 0, dy = 0;
+
+		// determine bounds, and dimensions
+		switch(axis){
+			case 'x':
+				max = dataSpace.x.max();
+				min = dataSpace.x.min();
+				dx = max - min;
+				break;
+			case 'y':
+				max = dataSpace.y.max();
+				min = dataSpace.y.min();
+				dy = max - min;
+				break;
+		}
+
+		// create the paper, and dimension it
+		var paper = Raphael(parentEle, dimensions.width, dimensions.height);
+		var out = {
+			paper: paper,
+			dimensions: dimensions,
+			scale: renderScale(paper, min, max - min, dx < dy),
+			resize: function(){
+				resizeAxisElement(paper, calcDimensions(axis));
+			}
+		};
+
+		resizeAxisElement(paper, dimensions);
+
+		// register the axis to be scaled when the camera moves
+		cam.onMove(function(){
+			var scale = out.scale;
+			var lineWidth = 3 / cam.zoom;
+			var cos = Math.cos, sin = Math.sin;
+			var scaleMatrix;
+			var ts = 1.25;
+
+			switch(axis){
+				case 'x':
+					scale.scalePath.attr('stroke-width', lineWidth);
+					paper.setViewBox(
+						(-(paper.width >> 1) / cam.zoom) - cam.offset.x, 0,
+						paper.width / cam.zoom, paper.height
+					);
+					scaleMatrix = [
+						[ts/cam.zoom, 0, 0,],
+						[0, ts, 0],
+						[0,  0, 1]
+					];
+					break;
+				case 'y':
+					paper.setViewBox(
+						0, (-(paper.height >> 1) / cam.zoom) - cam.offset.y,
+						paper.width, paper.height / cam.zoom
+					);
+					scale.scalePath.attr('stroke-width', lineWidth);
+					scaleMatrix = [
+						[ts, 0, 0,],
+						[0, ts/cam.zoom, 0],
+						[0,  0, 1]
+					];
+					break;
+			}
+
+			for (var i = scale.length; i--;) {
+				var t = scale[i], r = t.R;
+				var m = scaleMatrix.X(rot2d(t.R, 3)).translate([t.X, t.Y]).serialize('svg');
+				//matrix([cos(r) * 1.25, lineWidth * sin(r) * 0.75, -sin(r) * 1.25, lineWidth * cos(r) * 0.75, t.X, t.Y]);
+
+				t.element.transform(m);
+			}
+		});
+
+		return out;
+	}
+
+	var xAxis = createAxis('x');
+	var yAxis = createAxis('y');
+
+	dataSpace.onBoundsChanged(function(){
+		xAxis.scale.remove(); yAxis.scale.remove();
+
+		with(dataSpace){
+			var dx = x.max() - x.min(), dy = y.max() - y.min();
+			xAxis.scale = renderScale(xAxis.paper, x.min(), dx, false);
+			yAxis.scale = renderScale(yAxis.paper, y.min(), dy, true);
+		} 
+	});
+
+	return{
+		x: xAxis, 
+		y: yAxis
+	}
+};
+var QuadBackground = function(id, config){
+	var parentEle = document.getElementById(id);
+
+	if(!parentEle)
+		throw new UserException('Element "' + id + '" could not be located');
+
+	var parentWidth  = function(){ return parentEle.clientWidth; };
+	var parentHeight = function(){ return parentEle.clientHeight; };
+
+	var paper = Raphael(
+		parentEle, parentWidth(), parentHeight()
+	);
+
+	var renderPoint = function(position, color){
+		//DiagText(cvs, datapoint);
+		var point = paper.circle(position.x, position.y, 2);
+
+		point.attr('fill', color)
+		     .attr('stroke', '#ececfb')
+		     .attr('stroke-width', '3')
+		     .attr('r', 6);
+	
+		return point;
+	};
+
+	var render = function(){
+		var hw = parentWidth() >> 1, hh = parentHeight() >> 1; 
+
+		// white bg
+		paper.rect(0, 0, parentWidth(), parentHeight())
+			.attr('stroke-width', 0)
+		    .attr('fill', '#fff');
+		paper.canvas.style.zIndex = 0;
+
+		// y axis title   
+		paper.text(30, hh - 64, config.axes.y.title)
+			.attr('fill', '#a1c800')
+			.attr('font-size', 20)
+		    .transform('r-90');
+
+		// x axis title
+		var xTitle = paper.text(hw - 42, parentHeight() - 30, config.axes.x.title)
+			.attr('fill', '#a1c800')
+			.attr('font-size', 20);
+
+		// key
+		var off = 125;
+		paper.rect(parentWidth() - off, 0, 120, 2)
+			.attr('stroke-width', 0)
+		    .attr('fill', config.axes.colors.tick);
+		paper.text(parentWidth() - off, 15, 'Key')
+			.attr('font-size', 16)
+		    .attr('text-anchor', 'start');
+		paper.rect(parentWidth() - off, 30, 120, 2)
+			.attr('stroke-width', 0)
+		    .attr('fill', config.axes.colors.tick);
+
+
+		// render user defined key values
+		for(var i = 0; i < config.key.length; i++){
+			var keyItem = config.key[i];
+			keyItem.pos = {
+				x: parentWidth() - (off - 5),
+				y: (i * 30) + 50
+			};
+
+			renderPoint(keyItem.pos, keyItem.color);
+			paper.text(keyItem.pos.x + 20, keyItem.pos.y, keyItem.title)
+				.attr('font-size', 14)
+			    .attr('text-anchor', 'start');
+		}
+	};
+
+	render();
+
+	paper.resize = function(){
+		paper.clear();
+		paper.setSize(parentWidth(), parentHeight());
+		render();
+	};
+
+	return paper;
+}
+function QuadCamera(x, y, z){
+	return {
+		_onMoveListeners: new ll(),
+		_onGoHomeListeners: new ll(),
+		_dx: 0,
+		_dy: 0,
+		_lastAnimId: -1,
+		lag: 4,
+		offset: {
+			x: x || 0, y: y || 0
+		},
+		zoom: z || 1,
+		baseZoom: z || 1,
+		onMove: function(callback){
+			if(typeof(callback) !== 'function')
+				throw new UserException(
+					'A callback function must be provided'
+				);
+
+			return this._onMoveListeners.add(callback);
+		},
+		onGoHome: function(callback){
+			if(typeof(callback) !== 'function')
+				throw new UserException(
+					'A callback function must be provided'
+				);
+
+			return this._onGoHomeListeners.add(callback);
+		},
+		emitMove: function(e){
+			var node = this._onMoveListeners.first;
+			while(node){
+				node.value(e);
+				node = node.next;
+			}
+		},
+		emitGoHome: function(e){
+			var node = this._onGoHomeListeners.first;
+			while(node){
+				node.value(e);
+				node = node.next;
+			}
+		},
+		move: function(x, y, z){
+			var off = this.offset;
+			var cam = this;
+
+			// allow the user to ignore the zoom parameter
+			if(!z) z = this.zoom;
+
+			QuadAnim.clearInterval(cam._lastAnimId);
+			cam._lastAnimId = QuadAnim.animateUntil(
+				function(){
+					var dx = 0, dy = 0;
+					off.x += (cam._dx = dx = (-x - off.x)) / cam.lag;
+					off.y += (cam._dx = dy = (-y - off.y)) / cam.lag;
+					cam.zoom += (z - cam.zoom) / cam.lag;
+
+					cam.emitMove(cam);
+				},
+				function(){
+					var t = cam;
+					return t._dx * t._dx + t._dy * t._dy < 0.01;
+				}
+			);
+		},
+		jump: function(x, y, z){
+			var off = this.offset;
+			var cam = this;
+
+			// allow the user to ignore the zoom parameter
+			if(!z) z = this.zoom;
+
+			cam.zoom = z;
+			off.x = -x;
+			off.y = -y;
+
+			cam.emitMove(cam);
+		},
+		goHome: function(viewPaper, dataSpace){
+			var z; // this will be fed into the move invocation as zoom
+			var mean = dataSpace.mean();
+			var w, h;
+			var dw = w = Math.abs(dataSpace.x.max() - dataSpace.x.min());
+				dw = dw < viewPaper.width ? viewPaper.width : dw;
+			var dh = h = Math.abs(dataSpace.y.max() - dataSpace.y.min());
+				dh = dh < viewPaper.height ? viewPaper.height : dh;
+
+			var sf = w > h ? w : h;
+
+			if(Math.abs(w - dw) < Math.abs(h - dh)){
+				z = viewPaper.width / (sf + 30);
+			}
+			else{
+				z = viewPaper.height / (sf + 30);
+			} this.baseZoom = z;
+
+			// move to the home position
+			this.jump(mean.x, mean.y, z);
+
+			this.emitGoHome(this);
+		}
+	};
+}
+var QuadChart = function(id, config){
+	if(!typeof(id)==='string' || !config){
+		throw new UserException(
+			'Must provide non null configuration object and vaild element id.'
+		);
+	}
+	var viewCamera = QuadCamera(0, 0, 1);
+	var data = QuadData(config);
+	var view = QuadView(id, config, data, viewCamera);
+
+
+	data.onBoundsChanged(function(){
+		console.log('bounds changed');
+		viewCamera.goHome(view.paper, data);
+	});
+
+	// construct the chart object, with references to
+	// all it's consitituent objects
+	var chart = {
+		data: data,
+		background: QuadBackground(id, config),
+		axes: QuadAxes(id, config, data, viewCamera),
+		view: view,
+		camera: viewCamera,
+		resize: function(){
+			this.background.resize();
+			this.axes.x.resize();
+			this.axes.y.resize();
+			this.view.resize();
+		}
+	};
+
+	return chart;
+}
+var QuadData = function(config, onBoundsChanged){
+//   __   __        _      _    _        
+//   \ \ / /_ _ _ _(_)__ _| |__| |___ ___
+//    \ V / _` | '_| / _` | '_ \ / -_|_-<
+//     \_/\__,_|_| |_\__,_|_.__/_\___/__/
+//                                       
+	var _onRenderCallbacks = new ll(), _onBoundsChangedCallbacks = new ll();
+	var dataSpace = new SpatialTable(5);
+	var allData = [];
+	var hoods = [];
+	var hoodRadius = config.hoodRadius;
+	var mean = {x: 0, y: 0};
+//-----------------------------------------------------------------------------
+//    ___     _          _          __              _   _             
+//   | _ \_ _(_)_ ____ _| |_ ___   / _|_  _ _ _  __| |_(_)___ _ _  ___
+//   |  _/ '_| \ V / _` |  _/ -_) |  _| || | ' \/ _|  _| / _ \ ' \(_-<
+//   |_| |_| |_|\_/\__,_|\__\___| |_|  \_,_|_||_\__|\__|_\___/_||_/__/
+//                            
+	var floatingAvg = function(iBar, n, jBar, k){
+		return (iBar * n) / (n + k) + (jBar * k) / (n + k);
+	};
+//-----------------------------------------------------------------------------
+	var onRender = function(points, hoods){
+		var node = _onRenderCallbacks.first;
+		while(node){
+			node.value(points, hoods);
+			node = node.next;
+		}
+	}
+//-----------------------------------------------------------------------------
+	var onBoundsChanged = function(){
+		var node = _onBoundsChangedCallbacks.first;
+		while(node){
+			node.value();
+			node = node.next;
+		}
+	};
+//-----------------------------------------------------------------------------
+	var updateMean = function(data, newDataAvg, removing){
+		// NOTE: for this to work for additions and removal, the length
+		// of the removed data must be negated
+		var oldLen = allData.length;
+		var changeLen = removing ? -data.length : data.length;
+
+		mean.x = floatingAvg(mean.x, oldLen, newDataAvg.x, changeLen);
+		mean.y = floatingAvg(mean.x, oldLen, newDataAvg.y, changeLen);
+	};
+//-----------------------------------------------------------------------------
+	var createNewHood = function(di){
+		// Create a new hood if the datapoint does not
+		// belong to one.
+		if(!di.Neighborhood || di.Neighborhood < 0){
+			var newHood = [di];
+			// functions used for calculating the average
+			// center of a neighborhood
+			newHood.X = function(){
+				var sum = 0;
+				for(var n = this.length; n--; sum += this[n].X);
+				return (sum / this.length);
+			};
+			newHood.Y = function(){
+				var sum = 0;
+				for(var n = this.length; n--; sum += this[n].Y);
+				return (sum / this.length);
+			};
+			newHood.R = function(x, y){
+				var max_dx = 0, max_dy = 0;
+				for(var n = this.length; n--;){
+					var dx = Math.abs(this[n].X - x), dy = Math.abs(this[n].Y - y);
+					max_dx = dx > max_dx ? dx : max_dx;
+					max_dy = dy > max_dy ? dy : max_dy;
+				}
+
+				return Math.sqrt(max_dx * max_dx + max_dy * max_dy);
+			};
+			newHood.Index = di.Neighborhood = hoods.push(newHood) - 1;
+		}
+	};
+//-----------------------------------------------------------------------------
+	var matchExisting = function(nearBy, di){
+		var threshhold = Math.pow(hoodRadius, 2);
+
+		// create a hood for this data point, or
+		// match it up with an existing hood
+		var hood = hoods[di.Neighborhood];
+		for(var j = 0; j < nearBy.length; j++){
+			var dj = nearBy[j];
+			if(dj.Neighborhood == di.Neighborhood) continue;
+			var dx = dj.X - hood.X(), dy = dj.Y - hood.Y();
+
+			if(dx * dx + dy * dy <= threshhold){
+				if(dj.Neighborhood > -1){
+					// this data point is already part of a hood
+					// join that one instead
+					while(hood.length){
+						// move any neighbors to the new hood
+						var n = hood.pop();
+						n.Neighborhood = dj.Neighborhood;
+						hoods[dj.Neighborhood].push(n);
+					}
+					// remove the hood that was created for di we don't
+					// need it anymore.
+					hoods.pop();
+					hood = hoods[di.Neighborhood];
+				}
+				else{	
+					dj.Neighborhood = di.Neighborhood;
+					hood.push(dj);
+				}
+			}
+		}
+
+		return hood;
+	};
+//-----------------------------------------------------------------------------
+	var extractNeighbors = function(newData){
+		// try to pair the new elements up with a neighborhood
+		var hoodsToRender = [];
+		for(var i = newData.length; i--;){
+			var di = newData[i];
+
+			createNewHood(di);
+
+			// query for any nearby datapoints
+			var nearBy = dataSpace.Get(
+				{x: di.X, y: di.Y},
+				hoodRadius
+			);
+
+			var before = di.Neighborhood;
+			// if(di.Serial == "AT83F01269"){
+			// 	console.log('Something is about to go wrong');
+			// }
+			var hood = matchExisting(nearBy, di);
+			// if(!hood){
+			// 	console.log('Something is pretty wrong');
+			// }
+
+			// unmark if no neighbors were found
+			if(hood.length <= 1){
+				di.Neighborhood = -1;
+				hoods.pop(); // get rid of the empty hood
+			}
+			else
+				hoodsToRender.push(hood);
+		}
+
+		return hoodsToRender;
+	}
+//-----------------------------------------------------------------------------
+//    ___       _           __              _   _             
+//   |   \ __ _| |_ __ _   / _|_  _ _ _  __| |_(_)___ _ _  ___
+//   | |) / _` |  _/ _` | |  _| || | ' \/ _|  _| / _ \ ' \(_-<
+//   |___/\__,_|\__\__,_| |_|  \_,_|_||_\__|\__|_\___/_||_/__/
+//                                                            
+	var add = function(data){
+		// make sure that the data provided is not null. If it isn't, make sure
+		// it's an array, or convert it if it's not already.
+		if(!data) return;
+		data = (typeof(data.length) != 'undefined' ? data : [data]);
+		var newDataAvg = {
+			x: 0, y: 0
+		};
+		var boundsChanged = false;
+
+		// add all the data points to the space
+		for(var i = data.length; i--;){
+			// add the value to the space. invoke the change event if 
+			// the space was expanded through the addition of this point.
+			dataSpace.Insert(
+				{x: data[i].X, y: data[i].Y},
+				data[i],
+				function(){ boundsChanged = true; }
+			);
+
+			newDataAvg.x += data[i].X;
+			newDataAvg.y += data[i].Y;
+		}
+
+		// average for the new data set
+		newDataAvg.x /= data.length;
+		newDataAvg.y /= data.length;
+
+		updateMean(data, newDataAvg, false);
+		allData = allData.concat(data);
+
+		// kick off bounds changed event
+		if(boundsChanged) onBoundsChanged();
+
+		// draw the new points and hoods
+		onRender(data, /*extractNeighbors(data)*/[]);
+	};
+//-----------------------------------------------------------------------------
+	var remove = function(data){
+
+	};
+//-----------------------------------------------------------------------------
+	add(config.data);
+
+	return {
+		add: add,
+		remove: remove,
+		onRender: function(callback){ return _onRenderCallbacks.add(callback); },
+		onBoundsChanged: function(callback){ return _onBoundsChangedCallbacks.add(callback); },
+		x: {
+			max: function(){ return dataSpace.Max.x; },
+			min: function(){ return dataSpace.Min.x; }
+		},
+		y: {
+			max: function(){ return dataSpace.Max.y; },
+			min: function(){ return dataSpace.Min.y; }
+		},
+		mean: function(){ return mean; },
+		allData:  function(){ return allData; },
+		allHoods: function(){ return hoods; }
+	};
+}
+var QUAD_LAST_INFOBOX = null;
+var QUAD_LAST_POINT = null;
+
+var QuadDataPoint = function(point, paper, quadrants, cam){
+//   __   __        _      _    _        
+//   \ \ / /_ _ _ _(_)__ _| |__| |___ ___
+//    \ V / _` | '_| / _` | '_ \ / -_|_-<
+//     \_/\__,_|_| |_\__,_|_.__/_\___/__/
+//                                       
+	var info = [];
+	var onGoHomeNode = null;
+//-----------------------------------------------------------------------------
+//    ___     _          _          __              _   _             
+//   | _ \_ _(_)_ ____ _| |_ ___   / _|_  _ _ _  __| |_(_)___ _ _  ___
+//   |  _/ '_| \ V / _` |  _/ -_) |  _| || | ' \/ _|  _| / _ \ ' \(_-<
+//   |_| |_| |_|\_/\__,_|\__\___| |_|  \_,_|_||_\__|\__|_\___/_||_/__/
+// 
+	var pointInfoBox = function(){
+		info.hide = function(){
+			while(info.length){
+				info.pop().remove();
+			}
+			return info;
+		}
+
+		info.show = function(){
+			var x = 0, y = 0, s = 5 / cam.zoom;
+			var tri = 'M'+x+','+y+'l-2,4l,4,0';
+			x -= 50;
+			y += 4;
+
+			if(QUAD_LAST_INFOBOX){
+				QUAD_LAST_INFOBOX.hide();
+			}
+
+			var rectangle = 'M' + x + ',' + y + 'm0,5' +
+			                'c0,-5,0,-5,5,-5 l85,0 c5,0,5,0,5,5' + 
+			                'l0,10' + 
+			                'c0,5,0,5,-5,5 l-85,0 c-5,0,-5,0,-5,-5' +
+			                'l0,-10';
+
+			info.push(paper.path(tri + rectangle + 'Z')
+			             .attr('fill', '#000')
+			             .attr('font-weight', 'bold')
+			             .attr('opacity', 0.5)
+			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
+			);
+
+			info.push(paper.text(x + 2, y + 3, 'Asset Serial # ' + point.Serial)
+			             .attr('fill', '#fff')
+			             .attr('text-anchor', 'start')
+			             .attr('font-weight', 'bold')
+			             .attr('font-size', '4px')
+			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
+			);
+
+			info.push(paper.text(x + 2, y + 10, 'Utilization     ' + Math.ceil(point.X) + '%')
+			             .attr('fill', '#fff')
+			             .attr('text-anchor', 'start')
+			             .attr('font-weight', 'normal')
+			             .attr('font-size', '3px')
+			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
+			);
+
+			info.push(paper.text(x + 2, y + 15, 'Cost per hour    $' + Math.ceil(point.Y))
+			             .attr('fill', '#fff')
+			             .attr('text-anchor', 'start')
+			             .attr('font-weight', 'normal')
+			             .attr('font-size', '3px')
+			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
+			);
+
+			x += 55;
+			info.push(paper.text(x, y + 3, 'Asset Notes')
+			             .attr('fill', '#fff')
+			             .attr('text-anchor', 'start')
+			             .attr('font-size', '4px')
+			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
+			);
+
+			var t = null;
+			info.push(t = paper.text(x, y + 10, '')
+			             .attr('fill', '#fff')
+			             .attr('text-anchor', 'start')
+			             .attr('font-weight', 'normal')
+			             .attr('font-size', '3px')
+			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
+			);
+
+			// wrap text
+			var words = point.Notes.split(" ");
+			var tempText = "";
+			for (var i=0; i<words.length; i++) {
+				t.attr("text", tempText + " " + words[i]);
+				if (t.getBBox().width > 40 * s) {
+					tempText += "\n" + words[i];
+				} else {
+					tempText += " " + words[i];
+				}
+			}
+			t.attr("text", tempText.substring(1));
+
+			QUAD_LAST_INFOBOX = info;
+		}
+
+		return info;
+	};
+//-----------------------------------------------------------------------------
+	var inQuadrant = function(point){
+		for(var i = quadrants.length; i--;){
+			var q = quadrants[i];
+
+			var x = q.attrs.x, y = q.attrs.y;
+			var w = q.attrs.width, h = q.attrs.height;
+
+			if(point[0] >= x && point[0] < x + w &&
+			   point[1] >= y && point[1] < y + h)
+				return i;
+		}
+
+		return -1;
+	}
+//-----------------------------------------------------------------------------
+	var focus = function(){
+		QUAD_LAST_POINT = this;
+		info.show();
+		cam.jump(point.scaledPos.x, point.scaledPos.y);
+	};
+//-----------------------------------------------------------------------------
+	var quadIndex = inQuadrant([point.X, point.Y]);
+	var infoBox = pointInfoBox();
+
+	var scaledPos = { 
+		x: point.NormX * paper.width,
+		y: point.NormY * paper.height
+	};
+
+	var element = paper.circle(scaledPos.x.toFixed(2), scaledPos.y.toFixed(2), 2)
+				.attr('fill', quadrants.colors.dataFill[quadIndex])
+				.attr('stroke', '#ececfb')
+				.attr('stroke-width', 3)
+				.click(focus);
+
+	onGoHomeNode = cam.onGoHome(function(){
+		info.hide();
+	});
+//-----------------------------------------------------------------------------
+//    ___      _    _ _       __              _   _             
+//   | _ \_  _| |__| (_)__   / _|_  _ _ _  __| |_(_)___ _ _  ___
+//   |  _/ || | '_ \ | / _| |  _| || | ' \/ _|  _| / _ \ ' \(_-<
+//   |_|  \_,_|_.__/_|_\__| |_|  \_,_|_||_\__|\__|_\___/_||_/__/
+//                                                              
+	var remove = function(){
+		info.hide();
+		element.remove();
+
+		// remove this node's goHome instance from the handler
+		onGoHomeNode.remove();
+	};
+//-----------------------------------------------------------------------------
+	var reassign = function(){
+		var quadIndex = inQuadrant([scaledPos.x, scaledPos.y]);
+		if(!element)
+			console.log('Oh no...');
+		element.attr('fill', quadrants.colors.dataFill[quadIndex]);
+	};
+//-----------------------------------------------------------------------------
+	// add a reference to the original datum to
+	// the drawable bits that represent it
+	point.viewable = {
+		infoBox: infoBox,
+		element: element,
+		remove: remove,
+		reassign: reassign
+	};
+
+	return point.viewable;
+}
+var QUAD_LAST_HOOD;
+
+var QuadHood = function(hood, paper, quadrants, cam){
+//   __   __        _      _    _        
+//   \ \ / /_ _ _ _(_)__ _| |__| |___ ___
+//    \ V / _` | '_| / _` | '_ \ / -_|_-<
+//     \_/\__,_|_| |_\__,_|_.__/_\___/__/
+//                                       
+	var X, Y, R;
+	var onGoHomeNode;
+
+//-----------------------------------------------------------------------------
+//    ___     _          _          __              _   _             
+//   | _ \_ _(_)_ ____ _| |_ ___   / _|_  _ _ _  __| |_(_)___ _ _  ___
+//   |  _/ '_| \ V / _` |  _/ -_) |  _| || | ' \/ _|  _| / - \ ' \(_-<
+//   |_| |_| |_|\_/\__,_|\__\___| |_|  \_,_|_||_\__|\__|_\___/_||_/__/
+// 
+	var inQuadrant = function(hood){
+		var quadIndex = -2;
+
+		for(var j = hood.length; j--;){
+			var point = [hood[j].X, hood[j].Y];
+			for(var i = quadrants.length; i--;){
+				var q = quadrants[i];
+
+				var x = q.attrs.x, y = q.attrs.y;
+				var w = q.attrs.width, h = q.attrs.height;
+
+				if(point[0] >= x && point[0] < x + w &&
+				   point[1] >= y && point[1] < y + h)
+					if(quadIndex == -2 || quadIndex == i)
+						quadIndex = i;
+					else
+						return -1;
+			}			
+		}
+		return quadIndex;
+	}
+//-----------------------------------------------------------------------------
+	var unfocus = function(){
+		if(!QUAD_LAST_HOOD) return;
+		
+		for(var i = 0; i < QUAD_LAST_HOOD.elements.length; i++){
+			QUAD_LAST_HOOD.elements[i]
+				.attr('opacity', 1.0)
+				.toFront();
+		}
+
+		QUAD_LAST_HOOD = null;
+	};
+//-----------------------------------------------------------------------------
+	var focus = function(){
+
+		unfocus();
+		QUAD_LAST_HOOD = hood;
+		var opacity = 1.0;
+
+		QuadAnim.animateUntil(function(){
+			for(var i = hood.elements.length; i--;){
+				hood.elements[i].attr('opacity', opacity -= 0.05);
+			}
+		},
+		function(){
+			if(opacity < 0.1){
+				for(var i = hood.elements.length; i--;){
+					hood.elements[i]
+						.attr('opacity', 0)
+						.toBack();
+				}
+				return true;
+			}
+			return false;
+		});
+
+		cam.jump(X, Y, 30 / R);
+	};
+//-----------------------------------------------------------------------------
+	var drawGroup = function(quadIndex){
+		var fillColor = quadIndex >= 0 ? quadrants.colors.dataFill[quadIndex] : '#bbbbbb';
+		var element = null;
+
+		// calculate the center and radius of the group.
+		X = hood.X(); Y = hood.Y(); R = Math.floor(hood.R(X, Y) + 3);
+
+		// drawGroupShape as an outlier if all points do not reside in one specific quadrant
+		if(quadIndex < 0){
+			element = paper.rect(X - R, Y - R, R << 1, R << 1);
+		}
+		else{
+			element = paper.circle(X, Y, R);
+		}
+
+		element.attr('fill', fillColor)
+			.attr('stroke', '#ececfb')
+			.attr('stroke-width', '3')
+			.attr('opacity', 1.0)
+			.click(focus);
+
+		var number = paper.text(X, Y, hood.length + '')
+			.attr('stroke', '#ffffff')
+			.attr('stroke-width', '1')
+			.attr('fill', '#ffffff')
+			.attr('font-size', (R > 20 ? 20 : R) + 'px')
+			.toFront()
+			.click(focus);
+
+		return [element, number];
+	}
+//-----------------------------------------------------------------------------
+	var quadIndex = inQuadrant(hood);
+
+	// The hood had already been built, remove the old elements
+	// so that we can redraw it at a more up to date size
+	if(hood.elements && hood.elements.length > 0){
+		while(hood.elements.length){
+			hood.elements.pop().remove();
+		}
+	}
+
+	onGoHomeNode = cam.onGoHome(unfocus);
+	hood.elements = drawGroup(quadIndex);
+
+//-----------------------------------------------------------------------------
+//    ___      _    _ _       __              _   _             
+//   | _ \_  _| |__| (_)__   / _|_  _ _ _  __| |_(_)___ _ _  ___
+//   |  _/ || | '_ \ | / _| |  _| || | ' \/ _|  _| / _ \ ' \(_-<
+//   |_|  \_,_|_.__/_|_\__| |_|  \_,_|_||_\__|\__|_\___/_||_/__/
+//                                                              
+
+	hood.remove = function(){
+		for(var i = hood.elements.length; i--;){
+			hood.elements[i].remove();
+		}
+
+		// unregister this node from the goHome event
+		onGoHomeNode.remove();
+	};
+//-----------------------------------------------------------------------------
+	hood.reassign = function(){
+		var quadIndex = inQuadrant(hood);
+		
+		for(var i = hood.elements.length; i--;){
+			hood.elements[i].remove();
+		}
+
+		hood.elements = drawGroup(quadIndex);
+	};
+
+	return hood;
+}
+var QuadView = function(id, config, dataSpace, cam){
+//   __   __        _      _    _        
+//   \ \ / /_ _ _ _(_)__ _| |__| |___ ___
+//    \ V / _` | '_| / _` | '_ \ / -_|_-<
+//     \_/\__,_|_| |_\__,_|_.__/_\___/__/
+//                                       
+	var parentEle = document.getElementById(id);
+	var quadrants = [];
+
+	if(!parentEle)
+		throw new UserException('Element "' + id + '" could not be located');
+
+	var parentHeight = function(){ return parentEle.clientHeight; };
+	var parentWidth = function(){ return parentEle.clientWidth; };
+	var viewWidth = function(){
+		return parentEle.clientWidth - 280;
+	}
+	var viewHeight = function(){
+		return parentEle.clientHeight - 120;
+	}
+
+	var paper = Raphael(
+		parentEle, parentWidth() - 280, parentHeight() - 120
+	);
+	var cvs = paper.canvas;
+
+//-----------------------------------------------------------------------------
+//    ___     _          _          __              _   _             
+//   | _ \_ _(_)_ ____ _| |_ ___   / _|_  _ _ _  __| |_(_)___ _ _  ___
+//   |  _/ '_| \ V / _` |  _/ -_) |  _| || | ' \/ _|  _| / _ \ ' \(_-<
+//   |_| |_| |_|\_/\__,_|\__\___| |_|  \_,_|_||_\__|\__|_\___/_||_/__/
+//                            
+//-----------------------------------------------------------------------------
+	var goHome = function(){
+		var m = dataSpace.mean();
+		//cam.goHome(paper, dataSpace);
+		cam.jump(m.x * 3, m.y * 16, 1.2);
+		//var r = function(){ return (Math.random() - 0.5) * 200; };
+		//cam.move(r(), r(), 8);
+	};
+//-----------------------------------------------------------------------------
+	var renderQuadrantBackgrounds = function(){
+		// position and style the view's paper
+		paper.Top = viewHeight(); paper.Left = viewWidth();
+		cvs.style.position = 'absolute';
+		cvs.style.top = '0px';
+		cvs.style.left = '120px';
+		cvs.style.zIndex = 1000;
+		cvs.style.borderBottom = cvs.style.borderLeft =  '5px solid ' + config.axes.colors.tick;
+
+		// center at 0
+		var cx = 0, cy = 0;
+		var width = 55000, height = 3300;
+
+		// create the rectangles for all the quadrants
+		quadrants.push(paper.rect(-width + cx, -height + cy, width, height));
+		quadrants.push(paper.rect(cx, -height + cy, width, height));
+		quadrants.push(paper.rect(cx, cy, width, height));
+		quadrants.push(paper.rect(-width + cx, cy, width, height));
+
+		// style quadrants, and wire up click events
+		for(var i = 4; i--;){
+			quadrants[i].attr('fill', config.quadrants.colors.background[i])
+			            .attr('stroke', '#ececfb')
+			            .attr('stroke-width', 5)
+			            .click(goHome);
+		}
+
+		var hw = viewWidth() << 4, hh = viewHeight() << 4;
+		quadrants[0].title = paper.text(-hw + cx, -hh + cy, config.quadrants.title[0])
+		   .click(goHome)
+		   .attr('font-family', 'arial')
+		   .attr('fill', config.quadrants.colors.text[0]);
+		quadrants[1].title = paper.text(hw + cx, -hh + cy, config.quadrants.title[1])
+		   .click(goHome)
+		   .attr('font-family', 'arial')
+		   .attr('fill', config.quadrants.colors.text[1]);
+		quadrants[2].title = paper.text(hw + cx, hh + cy, config.quadrants.title[2])
+		   .click(goHome)
+		   .attr('font-family', 'arial')
+		   .attr('fill', config.quadrants.colors.text[2]);
+		quadrants[3].title = paper.text(-hw + cx, hh + cy, config.quadrants.title[3])
+		   .click(goHome)
+		   .attr('font-family', 'arial')
+		   .attr('fill', config.quadrants.colors.text[3]);
+
+		quadrants.colors = config.quadrants.colors;
+	}
+//-----------------------------------------------------------------------------
+	var render = function(points, hoods){
+		for(var i = points.length; i--;){
+			QuadDataPoint(points[i], paper, quadrants, cam);
+		}
+
+		for(var i = hoods.length; i--;){
+			QuadHood(hoods[i], paper, quadrants, cam);
+		}
+	};
+//-----------------------------------------------------------------------------
+	var viewChanged = function(camera){
+		paper.setViewBox(
+			(-(paper.width >> 1) / camera.zoom) - camera.offset.x,
+			(-(paper.height >> 1) / camera.zoom) - camera.offset.y,
+			paper.width / camera.zoom,
+			paper.height / camera.zoom,
+			false
+		);
+	};
+//-----------------------------------------------------------------------------
+	var setOrigin = function(point){
+		var hw = viewWidth() >> 4, hh = viewHeight() >> 4;
+		var cx = point[0], cy = point[1];
+
+		var offsets = {
+			quad: [
+			[-parentWidth() + cx, -parentHeight() + cy],
+			[cx, -parentHeight() + cy],
+			[cx, cy],
+			[-parentWidth() + cx, cy]
+			],
+			text: [
+				[-hw + cx, -hh + cy],
+				[ hw + cx, -hh + cy],
+				[ hw + cx,  hh + cy],
+				[ -hw + cx, hh + cy]
+			]
+		};
+
+		for(var i = 4; i--;){
+			quadrants[i].attr({
+				x: offsets.quad[i][0], y: offsets.quad[i][1],
+				width: parentWidth(), height: parentHeight()
+			});
+			quadrants[i].title.attr({
+				x: offsets.text[i][0], y: offsets.text[i][1]
+			});
+		}
+
+		// re assign all the hoods and datapoints
+		// TODO refactor this into an event on the quadData / dataSpace object
+		var data = dataSpace.allData();
+		for(var i = data.length; i--;){
+			data[i].viewable.reassign();
+		}
+
+		var hoods = dataSpace.allHoods();
+		for(var i = hoods.length; i--;){
+			hoods[i].reassign();
+		}
+	};
+//-----------------------------------------------------------------------------
+
+	renderQuadrantBackgrounds();
+	cam.onMove(viewChanged);
+	dataSpace.onRender(render);
+
+	return {
+		paper: paper,
+		setOrigin: setOrigin,
+		resize: function(){
+			this.paper.setSize(viewWidth(), viewHeight());
+		}
+	};
+};
 function SpatialTable(cellSize){
         var t = this;
 	t.Max = {x: null, y: null};
@@ -68,1002 +1325,4 @@ function SpatialTable(cellSize){
         }
 }
 
-if(typeof(QuadChart) == 'undefined') QuadChart = {};
-QuadChart.SetupAnimation = function(chart){
-	var par   = chart.Parent;
-	var v     = chart.View;
-	var axes  = chart.Axes;	
 
-	// Append useful animation functions
-	chart.Anims.setInterval = function(cb, dt){
-		var out = -1;
-		chart.Anims.push(out = setInterval(cb, dt));
-		return out;
-	};
-	chart.Anims.ClearAll = function(){
-		while(chart.Anims.length){
-			var id = -1;
-			clearInterval(id = chart.Anims.pop());
-		}
-	};
-
-	// animation that returns the camera to the
-	// center of the chart
-	chart.goHome = function(){
-
-		chart.Anims.ClearAll();
-
-		if(chart.SelectedHood)
-		chart.SelectedHood.Unfocus(chart.SelectedHood);
-
-		var transID = chart.Anims.setInterval(function(){
-			var speed = chart.Props.AnimationSpeed;
-			var dx = 0, dy = 0, x = (axes.X.Min + axes.X.Max) / 2, y = (axes.Y.Min + axes.Y.Max) / 2;
-			v.Xoffset += (dx = (x - v.Xoffset)) / speed;
-			v.Yoffset += (dy = (y - v.Yoffset)) / speed;
-			v.Zoom    += (v.BaseZoom - v.Zoom) / speed;
-			v.Update();
-
-			if(dx * dx + dy * dy < 0.01){
-				clearInterval(transID);
-				chart.SelectedHood = null;
-			}
-		}, 16);
-	}
-
-	// register polling loop to check for window resizing
-	par.LastWidth = par.clientWidth;
-	par.LastHeight = par.clientHeight;
-	var pid = par.id;
-	setInterval(function(){
-		var p = document.getElementById(pid);
-		if(p.LastHeight != p.clientHeight || p.LastWidth != p.clientWidth){
-			while(p.childNodes.length){
-				p.removeChild(p.childNodes[0]);
-			}
-
-			p.LastWidth = p.clientWidth;
-			p.LastHeight = p.clientHeight;
-
-			QuadChart.RenderChart(chart);
-			QuadChart.RedrawAllData(chart);	
-		}
-	}, 100);
-};
-
-QuadChart.UpdateNeighborhoodFocus = function(hood){
-	hood.Elements.Shape.attr('opacity', hood.Opacity);
-	hood.Elements.Text.attr('opacity', hood.Opacity);
-
-	for(var i = hood.length; i--;){
-		var di = hood[i];
-		di.Element.attr('opacity', 1 - hood.Opacity);
-	}
-};
-if(typeof(QuadChart) == 'undefined') QuadChart = {};
-
-QuadChart.RemoveDataPoint = function(chart, di){
-	var space   = chart.GetSpace();
-	var dataSet = chart.GetDataSet();
-	var hood    = di.Neighborhood >= 0 ? chart.GetHoods()[di.Neighborhood] : null;
-	
-	// remove the datapoint SVG element
-	di.Element.remove();
-
-	// remove from the space table
-	space.Remove(di);
-
-	// remove the datapoint from the set
-	dataSet.shift(dataSet.indexOf(di));
-
-	// remove the datapoint from the hood
-	if(hood){
-		hood.shift(hood.indexOf(di));
-		
-		// if that was the second data item in the array,	
-		if(hood.length <= 1){
-			// 'delete' the hood from the hoods array
-			delete chart.GetHoods()[di.Neighborhood];
-			hood[0].Neighborhood = -1;
-			hood[0].Element.attr('opacity', 1);
-			QuadChart.SetDataPointClickEvents(chart, hood[0]);
-			
-			// clean up any SVG elements that were
-			// associated with this hood
-			for(var k in hood.Elements){
-				hood.Elements[k].remove();
-			}	
-		}
-		else{
-			QuadChart.RenderNeighborhood(chart, hood);
-		}
-	}
-};
-
-QuadChart.AddDataPoints = function(chart, newData){
-	var space   = chart.GetSpace();
-	var dataSet = chart.GetDataSet();
-	var hoods   = chart.GetHoods();
-	var threshhold = Math.pow(chart.Props.HoodRadius, 2);
-
-	// append new data to old
-	if(newData)
-		dataSet = dataSet.concat(newData);
-	else
-		newData = dataSet;
-
-	// insert new datapoints into the space table
-	for(var i = newData.length; i--;){
-		var di = newData[i];
-		space.Insert(
-			{x: di.X, y: di.Y},
-			di,
-			function(){
-				// TODO re-render the axes
-				// TODO adjust zoom and stuff
-				QuadChart.DetermineBaseZoom(chart);
-				QuadChart.RenderAxes(chart);
-				//`alert('yeah');
-				//chart.View.Update();
-				var mean = chart.Props.Quadrants.GetMean(chart);
-				var delta = chart.Props.Quadrants.Delta;
-				console.log('Mean X', mean.x, 'Mean Y', mean.y);
-				console.log('dx', delta.x, 'dy', delta.y);
-				chart.goHome();
-			}
-		);
-	}
-
-	// try to pair the new elements up with a neighborhood
-	var hoodsToRender = [];
-	for(var i = newData.length; i--;){
-		var di = newData[i];
-
-		// Create a new hood if, the datapoint does not
-		// belong to one.
-		if(di.Neighborhood < 0){
-			var newHood = [di];
-			// functions used for calculating the average
-			// center of a neighborhood
-			newHood.X = function(){
-				var sum = 0;
-				for(var n = this.length; n--; sum += this[n].X);
-				return (sum / this.length);
-			};
-			newHood.Y = function(){
-				var sum = 0;
-				for(var n = this.length; n--; sum += this[n].Y);
-				return (sum / this.length);
-			};
-			newHood.Index = di.Neighborhood = hoods.push(newHood) - 1;
-		}
-
-		// query for any nearby datapoints
-		var nearBy = space.Get(
-			{x: di.X, y: di.Y},
-			chart.Props.HoodRadius
-		);
-
-		// create a hood for this data point, or
-		// match it up with an existing hood
-		var hood = hoods[di.Neighborhood];
-		for(var j = 0; j < nearBy.length; j++){
-			var dj = nearBy[j];
-			if(dj.Neighborhood == di.Neighborhood) continue;
-			var dx = dj.X - hood.X(), dy = dj.Y - hood.Y();
-
-			if(dx * dx + dy * dy <= threshhold){
-				if(dj.Neighborhood > -1){
-					// this data point is already part of a hood
-					// join that one instead
-					while(hood.length){
-						// move any neighbors to the new hood
-						var n = hood.pop();
-						n.Neighborhood = dj.Neighborhood;
-						hoods[dj.Neighborhood].push(n);
-					}
-					//hoods.splice(hoods.indexOf(hoods[hoodId]), 1);
-					hood = hoods[di.Neighborhood];
-				}
-				else{	
-					dj.Neighborhood = di.Neighborhood
-					hood.push(dj);
-				}
-			}
-		}
-
-		// unmark if no neighbors were found
-		if(hood.length <= 1){
-			di.Neighborhood = -1;
-			hoods.pop(); // get rid of the empty hood
-		}
-		else
-			hoodsToRender.push(hood);
-
-		// render each data point as it's added
-		QuadChart.RenderDatapoint(chart, di);
-
-		//QuadChart.UpdateQuadrants(chart);
-	}
-
-	// render all the hoods that have been marked
-	while(hoodsToRender.length){
-		QuadChart.RenderNeighborhood(chart, hoodsToRender.pop());
-	}
-
-	// Dynamically resize the axes
-	QuadChart.DetermineAxesScales(chart);
-	QuadChart.DetermineBaseZoom(chart);
-	chart.SetDataSet(dataSet);
-
-	return dataSet;
-};
-QuadChart.DetermineNeighborhoods = function(chart){
-	var hoods   = chart.GetHoods() || [];
-	var space   = chart.GetSpace();
-	var dataSet = chart.GetDataSet();
-
-	QuadChart.AddDataPoints(chart, null);
-	return hoods;
-};
-if(typeof(QuadChart) == 'undefined') QuadChart = {};
-
-QuadChart.DetermineAxesScales = function(chart){
-	var space = chart.GetSpace();
-	chart.Axes.X.Min = space.Min.x; chart.Axes.X.Max = space.Max.x;
-	chart.Axes.Y.Min = space.Min.y; chart.Axes.Y.Max = space.Max.y;
-};
-
-QuadChart.Chart = function(description){
-	var chart = this;
-
-	chart.SelectedHood = null;
-	chart.InfoBox = [];
-	chart.Anims = [];
-	chart.Description = description;
-	chart.Axes = {};
-	chart.View = {};
-	
-	chart.Data = {
-		Hoods: [],
-		DataSet: description.Chart.dataSet,
-		SpaceTable: new SpatialTable(5)
-	}
-
-	// Data Getters
-	chart.GetHoods   = function()  { return chart.Data.Hoods; };
-	chart.GetDataSet = function()  { return chart.Data.DataSet; };
-	chart.SetDataSet = function(ds){ chart.Data.DataSet = ds };
-	chart.GetSpace   = function()  { return chart.Data.SpaceTable; };
-
-
-	var desc = description, doc = document;
-	var err = function(str){ console.log('Error: ' + str); };
-
-	if(!desc){
-		err('Chart description is null.');
-		return null;	
-	}
-
-	// build begin initializing the chart
-	if(!desc.Chart){
-		err('Chart input object is null.');
-		return null;
-	}
-	else{
-		// margins, borders and other properties
-		chart.Props = {
-			Border: {
-				Thickness: desc.Chart.borderWidth || 1,
-				Color:     desc.Chart.borderColor || '#000'
-			},
-			Margins: {
-				Left:   desc.Chart.marginLeft || 16,
-				Right:  desc.Chart.marginRight || 16,
-				Top:    desc.Chart.marginTop || 16,
-				Bottom: desc.Chart.marginBottom || 16	
-			},
-			Quadrants: [],
-			HoodRadius: 7,
-			AnimationSpeed: 2.5
-		};
-
-		// populate the quadrants array
-		for(var i = 4; i--;){
-			chart.Props.Quadrants.push(desc.Chart.Quadrants[i] || {
-				Color: '#' + (i).toString() + (i + 1).toString() + (i << 1).toString(),
-				Text: '',
-				RenderPoint: function(){},
-				RenderGroup: function(){}
-			});
-		}
-
-		chart.Props.Quadrants.GetMean = function(chart){
-			var data = chart.GetDataSet();
-			var mean = { x: 0, y: 0 };
-			var last = chart.Props.Quadrants.LastMean || {x:0,y:0};
-			
-			for(var i = data.length; i--;){
-				mean.x += data[i].X;
-				mean.y += data[i].Y;
-			}
-			mean.x /= data.length;
-			mean.y /= data.length;
-
-			chart.Props.Quadrants.Delta = { x: mean.x - last.x, y: mean.y - last.y };
-			chart.Props.Quadrants.LastMean = mean;
-
-			return mean;
-		};
-
-		// setup axes
-		if(!desc.Chart.xAxes || !desc.Chart.yAxes){
-			err('Axes are null');
-			return null;
-		}
-		chart.Axes = {
-			X: {	
-				Title:       desc.Chart.xAxes.title || {Text: 'X', Rotation: 0},
-				Min:         desc.Chart.xAxes.min || 0,
-				Max:         desc.Chart.xAxes.max || 100,
-				LineColor:   desc.Chart.xAxes.lineColor || '#000',
-				TextColor:   desc.Chart.xAxes.textColor || '#000',
-				TickInterval:desc.Chart.xAxes.tickInterval || 20,
-				TickLength:  desc.Chart.xAxes.tickLength || 3 			
-			},
-			Y: {
-
-				Title:       desc.Chart.yAxes.title || {Text: 'Y', Rotation: 90},
-				Min:         desc.Chart.yAxes.min || 0,
-				Max:         desc.Chart.yAxes.max || 100,
-				LineColor:   desc.Chart.yAxes.lineColor || '#000',
-				TextColor:   desc.Chart.yAxes.textColor || '#000',
-				TickInterval:desc.Chart.yAxes.tickInterval || 20,
-				TickLength:  desc.Chart.yAxes.tickLength || 3 			
-			}
-		};
-
-		// create view
-		var view = chart.View = {
-			Xoffset: 0,
-			Yoffset: 0,
-			BaseZoom: 1,
-			Zoom: 3,
-			Update: function(){
-				var cd = chart, cvs = cd.Canvas;
-				var X = cd.Axes.X, Y = cd.Axes.Y;
-				var sin = Math.sin, cos = Math.cos;
-				var s = 2 / (this.Zoom);
-				var matrix = function(data){
-					var s = '';
-					for(var ei = data.length; ei--;){
-						s = (ei == 0 ? 'M' : ',') + data[ei] + s;
-					}
-					return s;
-				}
-
-				cvs.setViewBox(cd.X(0, cvs), cd.Y(0, cvs), cd.S(cvs.width), cd.S(cvs.height), false);
-				Y.cvs.setViewBox(0, cd.Y(0, Y.cvs), Y.cvs.width, cd.S(Y.cvs.height), false);
-				X.cvs.setViewBox(cd.X(0, X.cvs), 0, cd.S(X.cvs.width), X.cvs.height, false);
-			
-                for (var i = Y.cvs.Ticks.length; i--;) {
-                    var t = Y.cvs.Ticks[i], r = t.R;
-                    var m = matrix([cos(r) * 1.25, s * sin(r) * 0.75, -sin(r) * 1.25, s * cos(r) * 0.75, t.X, t.Y]);
-
-                    t.Ele.transform(m);
-                }
-                X.cvs.Scale.attr('stroke-width', 2 / this.Zoom);
-
-                for (var i = X.cvs.Ticks.length; i--;) {
-                    var t = X.cvs.Ticks[i], r = 0;// += 0.01;
-                    var m = matrix([s * cos(r) * 0.75, sin(r) * 1.25, -s * sin(r) * 0.75, cos(r) * 1.25, t.X, t.Y]);
-
-                    t.Ele.transform(m);
-                }
-				Y.cvs.Scale.attr('stroke-width', 2 / this.Zoom);
-
-			}
-		};
-		// setup some view-dependent coordinate calculation functions
-		chart.X = function(x, c){
-			var cv = c || cvs;
-			var dx = (x - view.Xoffset);
-			return (-(cv.width >> 1) / view.Zoom) - dx;	
-		};
-		chart.Y = function(y, c){
-			var cv = c || cvs;
-			var dy = (y - view.Yoffset);
-			return (-(cv.height >> 1) / view.Zoom) - dy;	
-		};
-		chart.S = function(s){
-			return s / view.Zoom;
-		}	
-
-		// Create SVG elements
-		QuadChart.RenderChart(chart);
-
-		// register animation handlers a
-		QuadChart.SetupAnimation(chart);
-
-		// determine neighborhoods
-		var hoods = chart.GetHoods();
-		hoods = QuadChart.DetermineNeighborhoods(chart);
-
-
-		// Dynamically determine axes
-		QuadChart.DetermineAxesScales(chart);
-
-
-	}
-};
-if(typeof(QuadChart) == 'undefined') QuadChart = {};
-QuadChart.DetermineBaseZoom = function(chart){
-        var axes  = chart.Axes;
-        var cvs   = chart.Canvas;
-        var v     = chart.View;
-
-        var w, h;
-        var dw = w = Math.abs(axes.X.Max - axes.X.Min); dw = dw < cvs.width ? cvs.width   : dw;
-        var dh = h = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < cvs.height ? cvs.height : dh;
-
-	var mean = chart.Props.Quadrants.GetMean(chart);
-
-        var cx = (axes.X.Max + axes.X.Min) / 2;
-        var cy = (axes.Y.Max + axes.Y.Min) / 2;
-
-        var sf = w > h ? w : h;
-
-        if(Math.abs(w - dw) < Math.abs(h - dh)){
-                v.BaseZoom = cvs.width / (sf + 30);
-        }
-        else{
-                v.BaseZoom = cvs.height / (sf + 30);
-        } v.Zoom = v.BaseZoom;
-
-	v.Xoffset = cx;
-	v.Yoffset = cy;
-};
-
-QuadChart.UpdateQuadrants = function(chart, chartZero){
-        var axes  = chart.Axes;
-        var cvs   = chart.Canvas;
-        var v     = chart.View;
-	QuadChart.DetermineBaseZoom(chart);
-
-	for(var i = chart.Props.Quadrants.length; i--;){
-		var quad = chart.Props.Quadrants[i];
-		var mat = 'M1,0,0,1,' + chartZero.x + ',' + chartZero.y;
-		quad.q.transform(mat);
-		quad.txt.transform(mat);
-	}
-
-	// update all datapoint, and neighborhood styles
-	QuadChart.RedrawAllData(chart);
-};
-
-QuadChart.RedrawAllData = function(chart){
-	var dataSet = chart.GetDataSet();
-
-	// remove all the datapoints SVG elements
-	for(var i = dataSet.length; i--;){
-		var di = dataSet[i];
-		di.Element.remove();
-	}
-
-	// reprocess the existing data
-	QuadChart.AddDataPoints(chart, null);
-};
-
-QuadChart.RenderChart = function(chart){
-	// some raphael init/assignment
-	var chtTemp = chart.Description.Chart;
-	var cvs = document.getElementById(chtTemp.renderTo) || chtTemp.renderTo;
-	if(!cvs){
-		err('Specified target element not found');
-		return null;
-	}
-	chart.Parent = cvs;	
-
-	chart.ClearInfoBox = function(){
-		if(chart.InfoBox.length){
-			while(chart.InfoBox.length)
-				chart.InfoBox.pop().remove();
-		}
-	};
-
-	var rx = 0, ry = 0;
-	var par = chart.Parent;
-	var raphCvs = chart.Canvas = Raphael(
-		par,
-		rx = (par.clientWidth  - 280),
-		ry = (par.clientHeight - 120)
-	);
-	raphCvs.Top = ry; raphCvs.Left = rx;
-	raphCvs.canvas.style.position = 'absolute';
-	raphCvs.canvas.style.top = '0px';//-cvs.clientHeight + 'px';
-	raphCvs.canvas.style.left = '120px';
-
-	// create the background axes titles
-	var border = 5;
-	var bg = QuadChart.RenderBackground(par, chart, border);
-
-
-	raphCvs.canvas.style.borderBottom = border + 'px solid ' + chart.Axes.X.LineColor;
-	raphCvs.canvas.style.borderLeft = border + 'px solid ' + chart.Axes.Y.LineColor;
-	par.Cvs = raphCvs;
-
-	var props = chart.Props;
-	var axes  = chart.Axes;
-	var cvs   = chart.Canvas;
-	var v     = chart.View;	
-
-	var w, h;
-	var dw = w = Math.abs(axes.X.Max - axes.X.Min); dw = dw < raphCvs.width ? raphCvs.width   : dw;
-	var dh = h = Math.abs(axes.Y.Max - axes.Y.Min); dh = dh < raphCvs.height ? raphCvs.height : dh;
-
-	var cx = 0;//(axes.X.Max + axes.X.Min) / 2;
-	var cy = 0;//(axes.Y.Max + axes.Y.Min) / 2;
-
-	QuadChart.DetermineBaseZoom(chart);
-
-	var w = (dw >> 1), 
-	    h = (dh >> 1);
-
-	// render quadrands
-	props.Quadrants[0].q = raphCvs.rect(-w + cx, -h + cy, w, h);
-	props.Quadrants[1].q = raphCvs.rect(cx, -h + cy, w, h);
-	props.Quadrants[2].q = raphCvs.rect(cx, cy, w, h);
-	props.Quadrants[3].q = raphCvs.rect(-w + cx, cy, w, h);
-
-	for(var i = 4; i--;){
-		props.Quadrants[i].q
-		.attr('fill', props.Quadrants[i].Color)
-		.attr('stroke', props.Border.Color)
-		.attr('stroke-width', props.Border.Thickness)
-		.click(function(){chart.ClearInfoBox();chart.goHome();});
-	}
-
-	var hw = w >> 3, hh = h >> 3;
-	props.Quadrants[0].txt = raphCvs.text(-hw + cx, -hh + cy, props.Quadrants[0].Text)
-	   .click(chart.goHome)
-	   .attr('font-family', 'arial')
-	   .attr('fill', props.Quadrants[0].TextColor);
-	props.Quadrants[1].txt = raphCvs.text(hw + cx, -hh + cy, props.Quadrants[1].Text)
-	   .click(chart.goHome)
-	   .attr('font-family', 'arial')
-	   .attr('fill', props.Quadrants[1].TextColor);
-	props.Quadrants[2].txt = raphCvs.text(hw + cx, hh + cy, props.Quadrants[2].Text)
-	   .click(chart.goHome)
-	   .attr('font-family', 'arial')
-	   .attr('fill', props.Quadrants[2].TextColor);
-	props.Quadrants[3].txt = raphCvs.text(-hw + cx, hh + cy, props.Quadrants[3].Text)
-	   .click(chart.goHome)
-	   .attr('font-family', 'arial')
-	   .attr('fill', props.Quadrants[3].TextColor);
-	// render chart axes
-	QuadChart.RenderAxes(chart);
-
-	// render neighborhoods
-	//QuadChart.RenderNeighborhoods(chart);	
-
-	// render lone data points
-	//QuadChart.RenderDatapoints(chart);
-
-
-	v.Update();
-
-};
-if(typeof(QuadChart) == 'undefined') QuadChart = {};
-QuadChart.RenderAxes = function(chartData){
-	var X = chartData.Axes.X;
-	var Y = chartData.Axes.Y;
-
-	var cd  = chartData;
-	var cvs = cd.Canvas;//.canvas;
-	var par = cd.Parent;
-
-	var top = cvs.Top, left = cvs.Left;
-	var w = cvs.width, h = cvs.height;
-
-	if(X.cvs){
-		X.cvs.remove();
-		Y.cvs.remove();
-	}
-
-	// create the x, and y axis canvases
-	var yc = Y.cvs = Raphael(par, 60, h);
-	var xc = X.cvs = Raphael(par, w, 60);
-
-	yc.canvas.style.position = 'absolute';
-	yc.canvas.style.zIndex = 1000;
-	yc.canvas.style.left  = '60px';
-	yc.canvas.style.top = '0px';
-
-	xc.canvas.style.position = 'absolute';
-	xc.canvas.style.zIndex = 1000;
-	xc.canvas.style.left  = '120px';
-	xc.canvas.style.top = cvs.height + 4 + 'px';
-
-	var dx = Math.ceil(X.Max - X.Min), dy = Math.ceil(Y.Max - Y.Min);
-
-	// create arrays to hold the tick labels
-	yc.Ticks = []; xc.Ticks = [];
-
-	// create the white backgrounds for each axis
-	yc.rect(0, Y.Min - dy * 2, yc.width, dy << 2)
-	  .attr('fill', '#fff')
-	  .attr('stroke-width', 0);
-	xc.rect(X.Min - dx * 2, 0, dx << 2, xc.height)
-	  .attr('fill', '#fff')
-	  .attr('stroke-width', 0);
-
-	// for each tick, append needed transform string values to render
-	// the tick, and render a text label for it. Push x, y, rotation
-	// and label elements onto an array for later.
-	var yScale = '', xScale = '', dx = X.Max - X.Min, dy = Y.Max - Y.Min;
-	for(var i = Math.ceil(dy / Y.TickInterval); i--;){
-		var y = Y.Min + i * Y.TickInterval;
-		yScale += 'M40,' + y;
-		yScale += 'l15,0';
-
-		yc.Ticks.push({
-			Ele: yc.text(0, 0, '$'+Math.ceil(y))
-			       .attr('text-anchor', 'end')
-			       .attr('fill', Y.TextColor),
-			X: 30,
-			Y: y,
-			R: 0
-		});
-	}
-	yc.Scale = yc.path(yScale) // finally, draw the ticks
-	             .attr('stroke', Y.LineColor);
-
-	// Same as above, but repeat for the x axis.
-	for(var i = Math.ceil(dx / X.TickInterval) + 1; i--;){
-		var x = X.Min + i * X.TickInterval;
-		xScale += 'M' + x + ',5';
-		xScale += 'l0,15';
-
-		xc.Ticks.push({
-			Ele: xc.text(0, 0, Math.ceil(x)+'%')
-			       .attr('text-anchor', 'end')
-			       .attr('fill', Y.TextColor),
-			X: x + 2,
-			Y: 30,
-			R: (Math.PI * 2) - Math.PI / 4
-		});
-	}
-	xc.Scale = xc.path(xScale) // draw the ticks
-	             .attr('stroke', X.LineColor);
-};
-if(typeof(QuadChart) == 'undefined') QuadChart = {};
-QuadChart.RenderBackground = function(cvs, cd, border){
-		var back = Raphael(
-			cvs,
-			cvs.clientWidth,
-			cvs.clientHeight
-		);
-		//back.style.position = 'absolute';
-
-		// white bg
-		back.rect(0, 0,
-			cvs.clientWidth,
-			cvs.clientHeight)
-			.attr('stroke-width', 0)
-		    .attr('fill', '#fff');
-		back.canvas.style.zIndex = 0;
-
-		// y axis title   
-		back.text(30, cvs.clientHeight >> 1, cd.Axes.Y.Title)
-    		.attr('fill', '#a1c800')
-    		.attr('font-size', 20)
-		    .transform('r-90');
-
-		// x axis title
-		back.text((cvs.clientWidth >> 1), cvs.clientHeight - 30, cd.Axes.X.Title)
-    		.attr('fill', '#a1c800')
-    		.attr('font-size', 20);
-
-    	// key
-    	var off = 125;
-    	back.rect(cvs.clientWidth - off, 0, 120, 2)
-    		.attr('stroke-width', 0)
-    	    .attr('fill', cd.Axes.X.LineColor);
-    	back.text(cvs.clientWidth - off, 15, 'Key')
-    		.attr('font-size', 16)
-    	    .attr('text-anchor', 'start');
-    	back.rect(cvs.clientWidth - off, 30, 120, 2)
-    		.attr('stroke-width', 0)
-    	    .attr('fill', cd.Axes.X.LineColor);
-
-    	back.rect(cvs.clientWidth - (off + 1), 44, 12, 12)
-			.attr('fill', '#bbbbbb')
-        	.attr('stroke', '#ececfb')
-			.attr('stroke-width', '3');
-		back.text(cvs.clientWidth - (off - 25), 50, 'Outlying')
-				.attr('font-size', 14)
-			    .attr('text-anchor', 'start');	
-		for(var i = cd.Props.Quadrants.length; i--;){
-			var q = cd.Props.Quadrants[i];
-			var pos = {X:cvs.clientWidth - (off - 5),Y:(i*30) + 80};
-			q.RenderPoint(back, pos).attr('r', 6);
-			back.text(pos.X + 20, pos.Y, cd.Props.Quadrants[i].Text)
-				.attr('font-size', 14)
-			    .attr('text-anchor', 'start');
-
-		}
-
-		return back;
-};
-if(typeof(QuadChart) == 'undefined') QuadChart = {};
-Raphael.el.unbindall = function(){
-	if(this.events)
-	while(this.events.length){
-		//this.unclick(this.events.pop());
-		this.events.pop().unbind();
-	}
-};
-
-QuadChart.SetDataPointClickEvents = function(chart, di){
-	var cd = chart;
-	var cvs = cd.Canvas;
-	var props = cd.Props;
-	var v = cd.View;
-	var Hoods = cd.GetHoods();
-	var ele = di.Element;
-	
-	if(!ele) return;
-	ele.unbindall();
-	ele.toFront();
-	if(di.Neighborhood >= 0){
-	
-		ele.attr('opacity', '0.0');
-		ele.click(function(e){
-			var x = this.X - 40, y = this.Y, di = this.di;
-			var hood = this.di.Neighborhood;
-
-			if(hood >= 0){
-				var myHood = Hoods[hood];
-				if(myHood.Opacity > 0.5){
-					myHood.Elements.Shape.events[0].Hood = myHood;
-					myHood.Elements.Shape.events[0].f(e);
-					return;
-				}
-			}
-
-			var info = chart.InfoBox;
-			chart.ClearInfoBox();
-			ele.renderInfo(cvs, v, chart.InfoBox, di);
-		});
-	}
-	else{
-		ele.click(function(){
-			var x = this.X, y = this.Y, di = this.di;
-			var oldHood = chart.SelectedHood;
-
-			chart.ClearInfoBox();
-			ele.renderInfo(cvs, v, chart.InfoBox, di);
-
-			chart.Anims.ClearAll();
-			if(oldHood)
-				oldHood.Unfocus(oldHood);
-
-			var transID = chart.Anims.setInterval(function(){
-				var dx = 0, dy = 0;
-				var speed = chart.Props.AnimationSpeed;
-				v.Xoffset += (dx = (x - v.Xoffset)) / speed;
-				v.Yoffset += (dy = (y - v.Yoffset)) / speed;
-				v.Zoom    += (v.BaseZoom - v.Zoom) / speed;
-				v.Update();
-
-
-				if(dx * dx + dy * dy < 1){
-					clearInterval(transID);
-					chart.SelectedHood = null;
-				}
-			}, 16);
-		});
-		ele.dblclick(function(){
-			var x = this.X, y = this.Y, di = this.di;
-			chart.Anims.ClearAll();
-			var transID = chart.Anims.setInterval(function(){
-				var dx = 0, dy = 0, dz = 0;
-				v.Xoffset += (dx = (x - v.Xoffset)) / speed;
-				v.Yoffset += (dy = (y - v.Yoffset)) / speed;
-				v.Zoom    += (dz = (10 - v.Zoom)) / speed;
-				v.Update();
-
-
-				if(dz < 1){
-					clearInterval(transID);
-					chart.SelectedHood = null;
-				}
-			}, 16);
-		});
-	}
-
-};
-
-QuadChart.RenderDatapoint = function(chart, di){
-	var cd = chart;
-	var cvs = cd.Canvas;
-	var props = cd.Props;
-	var v = cd.View;
-	var x = di.X, y = di.Y;
-	var Hoods = cd.GetHoods();
-
-	for(var j = props.Quadrants.length; j--;){
-		if(props.Quadrants[j].q.isPointInside(x, y)){
-			var ele = di.Element  = props.Quadrants[j].RenderPoint(cvs, di);
-			ele.toFront();
-			ele.renderInfo = props.Quadrants[j].PointInfo;
-
-			QuadChart.SetDataPointClickEvents(chart, di);
-
-			ele.X = x; ele.Y = y; ele.InfoBox = null;
-			ele.di = di;
-		}
-	}
-};
-QuadChart.RenderDatapoints = function(chart){
-	var cd = chart;
-	var props   = cd.Props;
-	var v       = cd.View;
-	var cvs     = cd.Canvas;
-	var dataSet = cd.GetDataSet();
-
-	for(var i = dataSet.length; i--;){
-		var di = dataSet[i];
-		QuadChart.RenderDatapoint(chart, di);
-	}
-};
-if(typeof(QuadChart) == 'undefined') QuadChart = {};
-QuadChart.RenderNeighborhood = function(chart, hood){
-	var cd = chart;
-	var props = cd.Props;
-	var axes  = cd.Axes;
-	var cvs   = cd.Canvas;
-	var hoods = cd.GetHoods();
-	var v     = cd.View;
-
-	var len = hood.length;
-	var di = hood[0];
-	var cx = hood.X(), cy = hood.Y(), Mx, My;
-	if(!di || !len) return;
-	Mx = di.X; My = di.Y;
-
-	// clean up existing elements
-	for(var k in hood.Elements){
-		var e = hood.Elements[k];
-		e.remove();
-	}
-
-	// determine the center
-	//for(var j = len; j--;){
-	//	var n = hood[j];
-	//	cx += n.X; cy += n.Y;
-	//} cx /= len; cy /= len;
-
-	// determine the radius
-	var DX = function(n){return Math.abs(n - cx);};
-	var DY = function(n){return Math.abs(n - cy);}; 
-	for(var j = len; j--;){
-		var n = hood[j];
-
-		Mx = DX(n.X) > DX(Mx) ? n.X : Mx;
-		My = DY(n.Y) > DY(My) ? n.Y : My;
-	}
-	var dx = Mx - cx, dy = My - cy;
-	hood.Radius = Math.ceil(Math.sqrt(dx * dx + dy * dy)) + 2;
-	hood.Radius = hood.Radius < 5 ? 5: hood.Radius;
-	hood.Opacity = 1.0;
-	hood.AnimID = -1;
-
-	hood.Focus = function(hood){
-		// stop any running animation
-		chart.Anims.ClearAll();
-
-		var x = hood.X(), y = hood.Y(), speed = chart.Props.AnimationSpeed;
-		var oldHood = chart.SelectedHood;
-
-		if(oldHood)
-			oldHood.Unfocus(oldHood);
-
-		var id = hood.AnimID = chart.Anims.setInterval(function(){
-			// perform the panning calculations
-			var dx = 0, dy = 0, r = hood.Radius, zoom = r <= 2 ? 3 : (r > 10 ? 10 : r) + v.BaseZoom;
-			
-			v.Xoffset += (dx = (x - v.Xoffset)) / speed;
-			v.Yoffset += (dy = (y - v.Yoffset)) / speed;
-
-			// smooth interpolation for zoom
-			v.Zoom += (zoom - v.Zoom) / speed;
-
-			// update the camera
-			v.Update();
-
-			// Update the opacity of the datapoints and hood
-			hood.Opacity += (0 - hood.Opacity) / speed;
-			QuadChart.UpdateNeighborhoodFocus(hood);
-
-			// end animation when the opacity is near the target
-			if(hood.Opacity < 0.001){
-				console.log('Translate done ' + Math.random());
-				clearInterval(id);
-				hood.AnimID = -1;
-			}
-		}, 16);
-		hood.Elements.Shape[0].style.pointerEvents = 'visible';
-		hood.Elements.Text[0].style.pointerEvents  = 'visible';
-	};
-	hood.Unfocus = function(hood){
-		chart.ClearInfoBox();
-		var speed = chart.Props.AnimationSpeed;
-		// stop any running animation
-		// if(hood.AnimID > 0)
-		// 	clearInterval(hood.AnimID);
-
-		var oldFadeID = hood.AnimID = setInterval(function(){
-			// Update the opacity of the datapoints and hood
-			hood.Opacity += (1 - hood.Opacity) / speed;
-			QuadChart.UpdateNeighborhoodFocus(hood);
-
-			if(hood.Opacity > 0.99){
-				console.log('Fade ended ' + Math.random());
-				clearInterval(oldFadeID);
-				hood.AnimID = -1;
-			}
-		}, 16);
-	};
-
-	if(props && props.Quadrants)
-	for(var j = props.Quadrants.length; j--;){
-		if(!props.Quadrants[j].q.isPointInside(cx, cy)) continue;
-
-		hood.Quadrant = props.Quadrants[j].q;
-		var grp = props.Quadrants[j].RenderGroup(cvs, hood);
-		var zoom = 12 - hood.length;
-
-		// create the click event function
-		var click = function(e){
-			var hood = this.Hood;
-			var oldHood = chart.SelectedHood;
-			chart.ClearInfoBox();
-
-			if(oldHood)
-				oldHood.Unfocus(oldHood);
-			
-			if(oldHood != hood){
-				hood.Focus(hood);
-				chart.SelectedHood = hood;
-			}	
-			else
-				chart.goHome();
-		};
-
-		// assign click events
-		grp.Shape.click(click); grp.Text.click(click);
-
-		// keep references to the group position on
-		// Shape and text SVG elements
-		grp.Shape.X = cx; grp.Shape.Y = cy;
-		grp.Text.X = cx; grp.Text.Y = cy;
-
-		// keep references from the elements to the hood
-		// and vise versa
-		grp.Shape.Hood = grp.Text.Hood = hood;
-		hood.Elements = {
-			Shape: grp.Shape,
-			Text: grp.Text
-		};
-	}
-
-	for(var i = len; i--;){
-		QuadChart.SetDataPointClickEvents(chart, hood[i]);
-	}	
-}
-
-QuadChart.RenderNeighborhoods = function(chart){
-	for(var i = hoods.length; i--;){
-	}
-};

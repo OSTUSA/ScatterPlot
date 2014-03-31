@@ -8,5 +8,6 @@ for f in $SRC
 do
 	echo $f
 	less $f >> $DEST
+	echo '' >> $DEST
 done
 echo "Complete!"
