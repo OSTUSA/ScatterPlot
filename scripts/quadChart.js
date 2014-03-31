@@ -1,74 +1,3 @@
-function SpatialTable(cellSize){
-        var t = this;
-	t.Max = {x: null, y: null};
-	t.Min = {x: null, y: null};
-
-        var hash = function(point){
-                var x = Math.floor(point.x / cellSize);
-                var y = Math.floor(point.y / cellSize);
-
-                return x + '-' + y;             
-        }       
-
-        t.Insert = function(point, value, onBoundsChanged){
-                var key = hash(point);
-                var cell = (t[key] = t[key] || []);
-		var boundsChanged = false;
-
-		// update the min and max bounds of the
-		// occupied area.
-		if(t.Max.x == null || point.x > t.Max.x){ t.Max.x = point.x; boundsChanged = true; }
-		if(t.Max.y == null || point.y > t.Max.y){ t.Max.y = point.y; boundsChanged = true; }
-		if(t.Min.x == null || point.x < t.Min.x){ t.Min.x = point.x; boundsChanged = true; }
-		if(t.Min.y == null || point.y < t.Min.y){ t.Min.y = point.y; boundsChanged = true; }
-
-		if(boundsChanged) onBoundsChanged();
-
-                cell.push(value);
-                value.SpaceKey = key; // added for easy deletion
-        }
-
-        t.Get = function(point, radius){
-                var values = [];
-        
-                var circleX   = Math.floor(point.x / cellSize);
-                var circleY   = Math.floor(point.y / cellSize);
-                var circleRad = Math.ceil(radius / cellSize);
-                var radSqr = circleRad * circleRad;
-
-                for(var i = circleX - circleRad; i < circleX + circleRad; i++)
-                for(var j = circleY - circleRad; j < circleY + circleRad; j++){
-                        // skip if this coord is outside of the query circle's
-                        // radius
-                        var dx = i - circleX, dy = j - circleY;
-                        if(dx * dx + dy * dy > radSqr)
-                                continue;               
-
-                        var cell = t[i + '-' + j];      
-                        if(cell){
-                                values = values.concat(cell);
-                        }
-                }               
-
-                return values;
-        }
-
-        // arg can be either a point, or a value inserted into the
-        // data structure
-        t.Remove = function(arg){
-                if(arg.SpaceKey){
-                        var bucket = t[arg.SpaceKey];
-                        var i = bucket.indexOf(arg);
-                        if(i>=0) bucket = bucket.splice(i, 1);
-                }
-                else{
-                        var key = hash(arg);
-                        t[key] = [];
-                }
-        }
-}
-
-
 function ll(){
   this.last = this.first = null;
 
@@ -560,7 +489,9 @@ function QuadCamera(x, y, z){
 		},
 		goHome: function(viewPaper, dataSpace){
 			var z; // this will be fed into the move invocation as zoom
-			var mean = dataSpace.mean();
+			var mean   = dataSpace.mean();
+			var stddev = dataSpace.standardDeviation();
+
 			var w, h;
 			var dw = w = Math.abs(dataSpace.x.max() - dataSpace.x.min());
 				dw = dw < viewPaper.width ? viewPaper.width : dw;
@@ -570,14 +501,14 @@ function QuadCamera(x, y, z){
 			var sf = w > h ? w : h;
 
 			if(Math.abs(w - dw) < Math.abs(h - dh)){
-				z = viewPaper.width / (sf + 30);
+				z = sf / (stddev.x * 4);
 			}
 			else{
-				z = viewPaper.height / (sf + 30);
+				z = sf / (stddev.y * 4);
 			} this.baseZoom = z;
 
 			// move to the home position
-			this.jump(mean.x, mean.y, z);
+			this.move(mean.x, mean.y, z);
 
 			this.emitGoHome(this);
 		}
@@ -629,6 +560,7 @@ var QuadData = function(config, onBoundsChanged){
 	var hoods = [];
 	var hoodRadius = config.hoodRadius;
 	var mean = {x: 0, y: 0};
+	var standardDeviation = {x: 0, y: 0};
 //-----------------------------------------------------------------------------
 //    ___     _          _          __              _   _             
 //   | _ \_ _(_)_ ____ _| |_ ___   / _|_  _ _ _  __| |_(_)___ _ _  ___
@@ -638,6 +570,11 @@ var QuadData = function(config, onBoundsChanged){
 	var floatingAvg = function(iBar, n, jBar, k){
 		return (iBar * n) / (n + k) + (jBar * k) / (n + k);
 	};
+//-----------------------------------------------------------------------------
+	var floatingStdDev = function(iStdDev, n, jVar, k, mean){
+		var iVar = iStdDev * iStdDev;
+		return Math.sqrt((iVar * n) / (n + k) + (jVar * k) / (n + k));
+	}
 //-----------------------------------------------------------------------------
 	var onRender = function(points, hoods){
 		var node = _onRenderCallbacks.first;
@@ -662,7 +599,16 @@ var QuadData = function(config, onBoundsChanged){
 		var changeLen = removing ? -data.length : data.length;
 
 		mean.x = floatingAvg(mean.x, oldLen, newDataAvg.x, changeLen);
-		mean.y = floatingAvg(mean.x, oldLen, newDataAvg.y, changeLen);
+		mean.y = floatingAvg(mean.y, oldLen, newDataAvg.y, changeLen);
+	};
+//-----------------------------------------------------------------------------
+	var updateStdDev = function(data, newDataVar, removing){
+		var oldLen = allData.length;
+		var changeLen = removing ? -data.length : data.length;
+		var stddev = standardDeviation;
+
+		stddev.x = floatingStdDev(stddev.x, oldLen, newDataVar.x, changeLen);
+		stddev.y = floatingStdDev(stddev.y, oldLen, newDataVar.y, changeLen);
 	};
 //-----------------------------------------------------------------------------
 	var createNewHood = function(di){
@@ -780,6 +726,9 @@ var QuadData = function(config, onBoundsChanged){
 		var newDataAvg = {
 			x: 0, y: 0
 		};
+		var newDataStdDev = {
+			x: 0, y: 0
+		};
 		var boundsChanged = false;
 
 		// add all the data points to the space
@@ -801,6 +750,11 @@ var QuadData = function(config, onBoundsChanged){
 		newDataAvg.y /= data.length;
 
 		updateMean(data, newDataAvg, false);
+
+		// calculated the variance from the newly updated mean
+		var variance = QuadStats.variance(data, mean);
+		updateStdDev(data, variance, false);
+
 		allData = allData.concat(data);
 
 		// kick off bounds changed event
@@ -830,6 +784,7 @@ var QuadData = function(config, onBoundsChanged){
 			min: function(){ return dataSpace.Min.y; }
 		},
 		mean: function(){ return mean; },
+		standardDeviation: function(){ return standardDeviation; },
 		allData:  function(){ return allData; },
 		allHoods: function(){ return hoods; }
 	};
@@ -960,7 +915,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 	var focus = function(){
 		QUAD_LAST_POINT = this;
 		info.show();
-		cam.jump(point.scaledPos.x, point.scaledPos.y);
+		cam.move(point.X, point.Y);
 	};
 //-----------------------------------------------------------------------------
 	var quadIndex = inQuadrant([point.X, point.Y]);
@@ -971,7 +926,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 		y: point.NormY * paper.height
 	};
 
-	var element = paper.circle(point.scaledPos.x.toFixed(2), point.scaledPos.y.toFixed(2), 2)
+	var element = paper.circle(point.X.toFixed(2), point.Y.toFixed(2), 2)
 				.attr('fill', quadrants.colors.dataFill[quadIndex])
 				.attr('stroke', '#ececfb')
 				.attr('stroke-width', 3)
@@ -995,7 +950,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 	};
 //-----------------------------------------------------------------------------
 	var reassign = function(){
-		var quadIndex = inQuadrant([point.scaledPos.x, point.scaledPos.y]);
+		var quadIndex = inQuadrant([point.X, point.Y]);
 		if(!element)
 			console.log('Oh no...');
 		element.attr('fill', quadrants.colors.dataFill[quadIndex]);
@@ -1162,6 +1117,34 @@ var QuadHood = function(hood, paper, quadrants, cam){
 
 	return hood;
 }
+var QuadStats = {
+	mean: function(data){
+		var avg = {x: 0, y: 0};
+		for(var i = data.length; i--;){
+			avg.x += data[i].X;
+			avg.y += data[i].Y;
+		}
+
+		return {x: avg.x / data.length, y: avg.y / data.length};
+	},
+	variance: function(data, mean){
+		var variance = {
+			x: 0, y: 0
+		};
+
+		for(var i = data.length; i--;){
+			var dx = data[i].X - mean.x;
+			var dy = data[i].Y - mean.y;
+			variance.x += dx * dx;
+			variance.y += dy * dy;
+		}
+
+		variance.x /= data.length;
+		variance.y /= data.length;
+
+		return variance;
+	}
+};
 var QuadView = function(id, config, dataSpace, cam){
 //   __   __        _      _    _        
 //   \ \ / /_ _ _ _(_)__ _| |__| |___ ___
@@ -1197,8 +1180,8 @@ var QuadView = function(id, config, dataSpace, cam){
 //-----------------------------------------------------------------------------
 	var goHome = function(){
 		var m = dataSpace.mean();
-		//cam.goHome(paper, dataSpace);
-		cam.jump(m.x * 3, m.y * 16, 1.2);
+		cam.goHome(paper, dataSpace);
+		//cam.move(m.x * 3, m.y * 16, 1.2);
 		//var r = function(){ return (Math.random() - 0.5) * 200; };
 		//cam.move(r(), r(), 8);
 	};
@@ -1326,3 +1309,74 @@ var QuadView = function(id, config, dataSpace, cam){
 		}
 	};
 };
+function SpatialTable(cellSize){
+        var t = this;
+	t.Max = {x: null, y: null};
+	t.Min = {x: null, y: null};
+
+        var hash = function(point){
+                var x = Math.floor(point.x / cellSize);
+                var y = Math.floor(point.y / cellSize);
+
+                return x + '-' + y;             
+        }       
+
+        t.Insert = function(point, value, onBoundsChanged){
+                var key = hash(point);
+                var cell = (t[key] = t[key] || []);
+		var boundsChanged = false;
+
+		// update the min and max bounds of the
+		// occupied area.
+		if(t.Max.x == null || point.x > t.Max.x){ t.Max.x = point.x; boundsChanged = true; }
+		if(t.Max.y == null || point.y > t.Max.y){ t.Max.y = point.y; boundsChanged = true; }
+		if(t.Min.x == null || point.x < t.Min.x){ t.Min.x = point.x; boundsChanged = true; }
+		if(t.Min.y == null || point.y < t.Min.y){ t.Min.y = point.y; boundsChanged = true; }
+
+		if(boundsChanged) onBoundsChanged();
+
+                cell.push(value);
+                value.SpaceKey = key; // added for easy deletion
+        }
+
+        t.Get = function(point, radius){
+                var values = [];
+        
+                var circleX   = Math.floor(point.x / cellSize);
+                var circleY   = Math.floor(point.y / cellSize);
+                var circleRad = Math.ceil(radius / cellSize);
+                var radSqr = circleRad * circleRad;
+
+                for(var i = circleX - circleRad; i < circleX + circleRad; i++)
+                for(var j = circleY - circleRad; j < circleY + circleRad; j++){
+                        // skip if this coord is outside of the query circle's
+                        // radius
+                        var dx = i - circleX, dy = j - circleY;
+                        if(dx * dx + dy * dy > radSqr)
+                                continue;               
+
+                        var cell = t[i + '-' + j];      
+                        if(cell){
+                                values = values.concat(cell);
+                        }
+                }               
+
+                return values;
+        }
+
+        // arg can be either a point, or a value inserted into the
+        // data structure
+        t.Remove = function(arg){
+                if(arg.SpaceKey){
+                        var bucket = t[arg.SpaceKey];
+                        var i = bucket.indexOf(arg);
+                        if(i>=0) bucket = bucket.splice(i, 1);
+                }
+                else{
+                        var key = hash(arg);
+                        t[key] = [];
+                }
+        }
+}
+
+
