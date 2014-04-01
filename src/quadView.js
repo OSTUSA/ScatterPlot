@@ -6,6 +6,9 @@ var QuadView = function(id, config, dataSpace, cam){
 //                                       
 	var parentEle = document.getElementById(id);
 	var quadrants = [];
+	var quadrantPopulations = [
+		0, 0, 0, 0
+	];
 
 	if(!parentEle)
 		throw new UserException('Element "' + id + '" could not be located');
@@ -138,10 +141,12 @@ var QuadView = function(id, config, dataSpace, cam){
 		}
 
 		// re assign all the hoods and datapoints
+		// update the quadrantPopulations
 		// TODO refactor this into an event on the quadData / dataSpace object
 		var data = dataSpace.allData();
+		quadrantPopulations = [0, 0, 0, 0];
 		for(var i = data.length; i--;){
-			data[i].viewable.reassign();
+			++quadrantPopulations[data[i].viewable.reassign()];
 		}
 
 		var hoods = dataSpace.allHoods();
@@ -158,6 +163,9 @@ var QuadView = function(id, config, dataSpace, cam){
 	return {
 		paper: paper,
 		setOrigin: setOrigin,
+		quadrantPopulations: function(){
+			return quadrantPopulations;
+		},
 		resize: function(){
 			this.paper.setSize(viewWidth(), viewHeight());
 		}

@@ -163,6 +163,8 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 		if(!element)
 			console.log('Oh no...');
 		element.attr('fill', quadrants.colors.dataFill[quadIndex]);
+
+		return quadIndex;
 	};
 //-----------------------------------------------------------------------------
 	// add a reference to the original datum to
