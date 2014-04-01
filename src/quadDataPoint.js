@@ -136,10 +136,11 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 	};
 
 	var element = paper.circle(point.X.toFixed(2), point.Y.toFixed(2), 2)
-				.attr('fill', quadrants.colors.dataFill[quadIndex])
-				.attr('stroke', '#ececfb')
-				.attr('stroke-width', 3)
-				.click(focus);
+
+	element.attr('fill', quadrants.colors.dataFill[quadIndex])
+	element.attr('stroke', '#ececfb')
+	element.attr('stroke-width', 3)
+	element.click(focus);
 
 	onGoHomeNode = cam.onGoHome(function(){
 		info.hide();
