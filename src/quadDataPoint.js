@@ -124,7 +124,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 	var focus = function(){
 		QUAD_LAST_POINT = this;
 		info.show();
-		cam.move(point.X, point.Y);
+		cam.jump(point.X, point.Y);
 	};
 //-----------------------------------------------------------------------------
 	var quadIndex = inQuadrant([point.X, point.Y]);

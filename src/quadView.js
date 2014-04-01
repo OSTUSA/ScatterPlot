@@ -157,25 +157,32 @@ var QuadView = function(id, config, dataSpace, cam){
 	renderQuadrantBackgrounds();
 	cam.onMove(viewChanged);
 	cam.onGoHome(function(){
-		var z; // this will be fed into the move invocation as zoom
-		var stddev = dataSpace.standardDeviation();
+		var qw = paper.width >> 2;
+		var qh = paper.height >> 2;
+		var std = dataSpace.standardDeviation();
+		var median = dataSpace.median();
 
-		var w, h;
-		var dw = w = Math.abs(dataSpace.x.max() - dataSpace.x.min());
-			dw = dw < paper.width ? paper.width : dw;
-		var dh = h = Math.abs(dataSpace.y.max() - dataSpace.y.min());
-			dh = dh < paper.height ? paper.height : dh;
+		var calculateZoom = function(){
+			var a = Math.abs, dMax, dMin, tall = false;
 
-		var sf = w > h ? w : h;
+			if(std.x > std.y){
+				dMax = a(median.X - dataSpace.x.max());
+				dMin = a(median.X - dataSpace.x.min());
+			}
+			else{
+				tall = true;
+				dMax = a(median.Y - dataSpace.y.max());
+				dMin = a(median.Y - dataSpace.y.min());			
+			}
 
-		if(Math.abs(w - dw) < Math.abs(h - dh)){
-			z = sf / (stddev.x * 4);
+			return { isTall: tall, value: dMin < dMax ? dMin : dMax }; 
+		};
+
+		var zoom;
+		with(calculateZoom()){
+			zoom = isTall ? qh / value : qw / value;
 		}
-		else{
-			z = sf / (stddev.y * 4);
-		} this.baseZoom = z;
-
-		cam.move(origin[0], origin[1], z);
+		cam.jump(origin[0], origin[1], zoom);
 	});
 	dataSpace.onRender(render);
 

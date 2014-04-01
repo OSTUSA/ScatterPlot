@@ -10,6 +10,7 @@ var QuadChart = function(id, config){
 
 
 	data.onBoundsChanged(function(){
+		var m = data.median();
 		console.log('bounds changed');
 		viewCamera.goHome(view.paper, data);
 	});

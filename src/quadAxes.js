@@ -80,7 +80,7 @@ var QuadAxes = function(id, config, dataSpace, cam){
 				scale += 'M' + p + ',5';
 				scale += 'l0,15';
 			}
-
+/*
 			ticks.push({
 				element: paper.text(0, 0, (tall ? unit : '') + Math.ceil(p) + (!tall ? unit : ''))
 				       .attr('text-anchor', 'end')
@@ -88,7 +88,7 @@ var QuadAxes = function(id, config, dataSpace, cam){
 				X: (tall ? 30 : p),
 				Y: (tall ? p : 30),
 				R: (tall ? 0 : -Math.PI / 8)
-			});
+			});*/
 		}
 		ticks.scalePath = paper.path(scale).attr('stroke', config.axes.colors.tick); // finally, draw the ticks
 		ticks.scalePath.Tag = 'scale path for ' + (tall ? 'y ' : 'x ');
@@ -174,10 +174,8 @@ var QuadAxes = function(id, config, dataSpace, cam){
 
 			for (var i = scale.length; i--;) {
 				var t = scale[i], r = t.R;
-				var m = scaleMatrix.X(rot2d(t.R, 3)).translate([t.X, t.Y]).serialize('svg');
-				//matrix([cos(r) * 1.25, lineWidth * sin(r) * 0.75, -sin(r) * 1.25, lineWidth * cos(r) * 0.75, t.X, t.Y]);
-
-				t.element.transform(m);
+				//var m = scaleMatrix.X(rot2d(t.R, 3)).translate([t.X, t.Y]).serialize('svg');
+				//t.element.transform(m);
 			}
 		});
 

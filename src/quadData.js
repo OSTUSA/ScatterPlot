@@ -10,6 +10,7 @@ var QuadData = function(config, onBoundsChanged){
 	var hoods = [];
 	var hoodRadius = config.hoodRadius;
 	var mean = {x: 0, y: 0};
+	var median = {x: 0, y: 0};
 	var standardDeviation = {x: 0, y: 0};
 //-----------------------------------------------------------------------------
 //    ___     _          _          __              _   _             
@@ -205,7 +206,14 @@ var QuadData = function(config, onBoundsChanged){
 		var variance = QuadStats.variance(data, mean);
 		updateStdDev(data, variance, false);
 
-		allData = allData.concat(data);
+		// sort the data, by X and Y. Keep the median of both
+		allData = allData.concat(data).sort(function(a, b){
+			return a.X - b.X;
+		});
+		median.x = allData[allData.length >> 1];
+		median.y = allData.sort(function(a, b){
+			return a.Y - b.Y;
+		})[allData.length >> 1];
 
 		// kick off bounds changed event
 		if(boundsChanged) onBoundsChanged();
@@ -247,6 +255,7 @@ var QuadData = function(config, onBoundsChanged){
 			min: function(){ return dataSpace.Min.y; }
 		},
 		mean: function(){ return mean; },
+		median: function(){ return median; },
 		standardDeviation: function(){ return standardDeviation; },
 		allData:  function(){ return allData; },
 		allHoods: function(){ return hoods; }
