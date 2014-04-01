@@ -769,11 +769,24 @@ var QuadData = function(config, onBoundsChanged){
 
 	};
 //-----------------------------------------------------------------------------
+	var clear = function(){
+		// blow away all data and remove the datapoints
+		while(allData.length){
+			allData.pop().viewable.remove();
+		}
+
+		// blow away all entries in the space table
+		while(dataSpace.length){
+			dataSpace.pop();
+		}
+	};
+//-----------------------------------------------------------------------------
 	add(config.data);
 
 	return {
 		add: add,
 		remove: remove,
+		clear: clear,
 		onRender: function(callback){ return _onRenderCallbacks.add(callback); },
 		onBoundsChanged: function(callback){ return _onBoundsChangedCallbacks.add(callback); },
 		x: {
@@ -928,10 +941,11 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 	};
 
 	var element = paper.circle(point.X.toFixed(2), point.Y.toFixed(2), 2)
-				.attr('fill', quadrants.colors.dataFill[quadIndex])
-				.attr('stroke', '#ececfb')
-				.attr('stroke-width', 3)
-				.click(focus);
+
+	element.attr('fill', quadrants.colors.dataFill[quadIndex])
+	element.attr('stroke', '#ececfb')
+	element.attr('stroke-width', 3)
+	element.click(focus);
 
 	onGoHomeNode = cam.onGoHome(function(){
 		info.hide();

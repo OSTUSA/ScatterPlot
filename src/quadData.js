@@ -218,11 +218,24 @@ var QuadData = function(config, onBoundsChanged){
 
 	};
 //-----------------------------------------------------------------------------
+	var clear = function(){
+		// blow away all data and remove the datapoints
+		while(allData.length){
+			allData.pop().viewable.remove();
+		}
+
+		// blow away all entries in the space table
+		while(dataSpace.length){
+			dataSpace.pop();
+		}
+	};
+//-----------------------------------------------------------------------------
 	add(config.data);
 
 	return {
 		add: add,
 		remove: remove,
+		clear: clear,
 		onRender: function(callback){ return _onRenderCallbacks.add(callback); },
 		onBoundsChanged: function(callback){ return _onBoundsChangedCallbacks.add(callback); },
 		x: {
