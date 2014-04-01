@@ -6,6 +6,7 @@ var QuadView = function(id, config, dataSpace, cam){
 //                                       
 	var parentEle = document.getElementById(id);
 	var quadrants = [];
+	var origin = [0,0];
 	var quadrantPopulations = [
 		0, 0, 0, 0
 	];
@@ -36,11 +37,7 @@ var QuadView = function(id, config, dataSpace, cam){
 //                            
 //-----------------------------------------------------------------------------
 	var goHome = function(){
-		var m = dataSpace.mean();
 		cam.goHome(paper, dataSpace);
-		//cam.move(m.x * 3, m.y * 16, 1.2);
-		//var r = function(){ return (Math.random() - 0.5) * 200; };
-		//cam.move(r(), r(), 8);
 	};
 //-----------------------------------------------------------------------------
 	var renderQuadrantBackgrounds = function(){
@@ -145,6 +142,7 @@ var QuadView = function(id, config, dataSpace, cam){
 		// TODO refactor this into an event on the quadData / dataSpace object
 		var data = dataSpace.allData();
 		quadrantPopulations = [0, 0, 0, 0];
+		origin = [cx, cy];
 		for(var i = data.length; i--;){
 			++quadrantPopulations[data[i].viewable.reassign()];
 		}
@@ -158,11 +156,33 @@ var QuadView = function(id, config, dataSpace, cam){
 
 	renderQuadrantBackgrounds();
 	cam.onMove(viewChanged);
+	cam.onGoHome(function(){
+		var z; // this will be fed into the move invocation as zoom
+		var stddev = dataSpace.standardDeviation();
+
+		var w, h;
+		var dw = w = Math.abs(dataSpace.x.max() - dataSpace.x.min());
+			dw = dw < paper.width ? paper.width : dw;
+		var dh = h = Math.abs(dataSpace.y.max() - dataSpace.y.min());
+			dh = dh < paper.height ? paper.height : dh;
+
+		var sf = w > h ? w : h;
+
+		if(Math.abs(w - dw) < Math.abs(h - dh)){
+			z = sf / (stddev.x * 4);
+		}
+		else{
+			z = sf / (stddev.y * 4);
+		} this.baseZoom = z;
+
+		cam.move(origin[0], origin[1], z);
+	});
 	dataSpace.onRender(render);
 
 	return {
 		paper: paper,
 		setOrigin: setOrigin,
+		getOrigin: function(){ return origin; },
 		quadrantPopulations: function(){
 			return quadrantPopulations;
 		},

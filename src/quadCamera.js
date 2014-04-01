@@ -77,29 +77,8 @@ function QuadCamera(x, y, z){
 
 			cam.emitMove(cam);
 		},
-		goHome: function(viewPaper, dataSpace){
-			var z; // this will be fed into the move invocation as zoom
-			var mean   = dataSpace.mean();
-			var stddev = dataSpace.standardDeviation();
-
-			var w, h;
-			var dw = w = Math.abs(dataSpace.x.max() - dataSpace.x.min());
-				dw = dw < viewPaper.width ? viewPaper.width : dw;
-			var dh = h = Math.abs(dataSpace.y.max() - dataSpace.y.min());
-				dh = dh < viewPaper.height ? viewPaper.height : dh;
-
-			var sf = w > h ? w : h;
-
-			if(Math.abs(w - dw) < Math.abs(h - dh)){
-				z = sf / (stddev.x * 4);
-			}
-			else{
-				z = sf / (stddev.y * 4);
-			} this.baseZoom = z;
-
-			// move to the home position
-			this.move(mean.x, mean.y, z);
-
+		goHome: function(viewPaper, dataSpace, callback){
+			if(callback) callback();
 			this.emitGoHome(this);
 		}
 	};
