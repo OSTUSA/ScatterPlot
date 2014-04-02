@@ -36,11 +36,14 @@ var QuadBackground = function(id, config){
 		paper.text(30, hh - 64, config.axes.y.title)
 			.attr('fill', '#a1c800')
 			.attr('font-size', 20)
+			.attr('font-family', QUAD_FONT)
+			.attr('font-weight', 'bold')
 		    .transform('r-90');
 
 		// x axis title
 		var xTitle = paper.text(hw - 42, parentHeight() - 30, config.axes.x.title)
 			.attr('fill', '#a1c800')
+			.attr('font-family', QUAD_FONT)
 			.attr('font-size', 20);
 
 		// key
@@ -50,6 +53,8 @@ var QuadBackground = function(id, config){
 		    .attr('fill', config.axes.colors.tick);
 		paper.text(parentWidth() - off, 15, 'Key')
 			.attr('font-size', 16)
+			.attr('font-family', QUAD_FONT)
+			.attr('font-weight', 'bold')
 		    .attr('text-anchor', 'start');
 		paper.rect(parentWidth() - off, 30, 120, 2)
 			.attr('stroke-width', 0)
@@ -67,6 +72,8 @@ var QuadBackground = function(id, config){
 			renderPoint(keyItem.pos, keyItem.color);
 			paper.text(keyItem.pos.x + 20, keyItem.pos.y, keyItem.title)
 				.attr('font-size', 14)
+				.attr('font-family', QUAD_FONT)
+				.attr('font-weight', 'bold')
 			    .attr('text-anchor', 'start');
 		}
 	};

@@ -70,19 +70,23 @@ var QuadView = function(id, config, dataSpace, cam){
 		var hw = viewWidth() << 4, hh = viewHeight() << 4;
 		quadrants[0].title = paper.text(-hw + cx, -hh + cy, config.quadrants.title[0])
 		   .click(goHome)
-		   .attr('font-family', 'arial')
+		   .attr('font-family', QUAD_FONT)
+		   .attr('font-weight', 'bold')
 		   .attr('fill', config.quadrants.colors.text[0]);
 		quadrants[1].title = paper.text(hw + cx, -hh + cy, config.quadrants.title[1])
 		   .click(goHome)
-		   .attr('font-family', 'arial')
+		   .attr('font-family', QUAD_FONT)
+		   .attr('font-weight', 'bold')
 		   .attr('fill', config.quadrants.colors.text[1]);
 		quadrants[2].title = paper.text(hw + cx, hh + cy, config.quadrants.title[2])
 		   .click(goHome)
-		   .attr('font-family', 'arial')
+		   .attr('font-family', QUAD_FONT)
+		   .attr('font-weight', 'bold')
 		   .attr('fill', config.quadrants.colors.text[2]);
 		quadrants[3].title = paper.text(-hw + cx, hh + cy, config.quadrants.title[3])
 		   .click(goHome)
-		   .attr('font-family', 'arial')
+		   .attr('font-family', QUAD_FONT)
+		   .attr('font-weight', 'bold')
 		   .attr('fill', config.quadrants.colors.text[3]);
 
 		quadrants.colors = config.quadrants.colors;

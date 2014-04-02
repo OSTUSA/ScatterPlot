@@ -203,6 +203,8 @@ var QuadAxes = function(id, config, dataSpace, cam){
 				var m = scaleMatrix.X(rot2d(r, 3)).translate([x, y]).serialize('svg');
 				drawnLabels.push(
 					paper.text(0, 0, (tall ? unit : '') + p + (!tall ? unit : ''))
+						   .attr('font-family', QUAD_FONT)
+						   .attr('font-weight', 'bold')
 					       .attr('text-anchor', 'end')
 					       .attr('fill', config.axes.colors.text)
 					       .transform(m)

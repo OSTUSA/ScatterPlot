@@ -41,6 +41,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 
 			info.push(paper.path(tri + rectangle + 'Z')
 			             .attr('fill', '#000')
+             		     .attr('font-family', QUAD_FONT)
 			             .attr('font-weight', 'bold')
 			             .attr('opacity', 0.5)
 			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
@@ -48,6 +49,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 
 			info.push(paper.text(x + 2, y + 3, 'Asset Serial # ' + point.Serial)
 			             .attr('fill', '#fff')
+             		     .attr('font-family', QUAD_FONT)
 			             .attr('text-anchor', 'start')
 			             .attr('font-weight', 'bold')
 			             .attr('font-size', '4px')
@@ -56,6 +58,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 
 			info.push(paper.text(x + 2, y + 10, 'Utilization     ' + Math.ceil(point.X) + '%')
 			             .attr('fill', '#fff')
+             		     .attr('font-family', QUAD_FONT)
 			             .attr('text-anchor', 'start')
 			             .attr('font-weight', 'normal')
 			             .attr('font-size', '3px')
@@ -64,6 +67,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 
 			info.push(paper.text(x + 2, y + 15, 'Cost per hour    $' + Math.ceil(point.Y))
 			             .attr('fill', '#fff')
+             		     .attr('font-family', QUAD_FONT)
 			             .attr('text-anchor', 'start')
 			             .attr('font-weight', 'normal')
 			             .attr('font-size', '3px')
@@ -71,34 +75,6 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 			);
 
 			x += 55;
-			info.push(paper.text(x, y + 3, 'Asset Notes')
-			             .attr('fill', '#fff')
-			             .attr('text-anchor', 'start')
-			             .attr('font-size', '4px')
-			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
-			);
-
-			var t = null;
-			info.push(t = paper.text(x, y + 10, '')
-			             .attr('fill', '#fff')
-			             .attr('text-anchor', 'start')
-			             .attr('font-weight', 'normal')
-			             .attr('font-size', '3px')
-			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
-			);
-
-			// wrap text
-			var words = point.Notes.split(" ");
-			var tempText = "";
-			for (var i=0; i<words.length; i++) {
-				t.attr("text", tempText + " " + words[i]);
-				if (t.getBBox().width > 40 * s) {
-					tempText += "\n" + words[i];
-				} else {
-					tempText += " " + words[i];
-				}
-			}
-			t.attr("text", tempText.substring(1));
 
 			QUAD_LAST_INFOBOX = info;
 		}

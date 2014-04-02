@@ -1,3 +1,8 @@
+function aprFls(){
+	return (new Date()).getDate()==1 && (new Date()).getMonth()==3;
+}
+var QUAD_FONT = !aprFls() ? 'Open Sans' : 'Comic Sans MS';
+
 var QuadChart = function(id, config){
 	if(!typeof(id)==='string' || !config){
 		throw new UserException(
