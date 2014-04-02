@@ -210,16 +210,16 @@ var QuadData = function(config, onBoundsChanged){
 		allData = allData.concat(data).sort(function(a, b){
 			return a.X - b.X;
 		});
-		median.x = allData[allData.length >> 1];
+		median.x = allData[allData.length >> 1].X;
 		median.y = allData.sort(function(a, b){
 			return a.Y - b.Y;
-		})[allData.length >> 1];
-
-		// kick off bounds changed event
-		if(boundsChanged) onBoundsChanged();
+		})[allData.length >> 1].Y;
 
 		// draw the new points and hoods
 		onRender(data, /*extractNeighbors(data)*/[]);
+
+		// kick off bounds changed event
+		if(boundsChanged) onBoundsChanged();
 	};
 //-----------------------------------------------------------------------------
 	var remove = function(data){

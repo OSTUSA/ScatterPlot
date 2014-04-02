@@ -204,7 +204,7 @@ var QuadAxes = function(id, config, dataSpace, cam){
 				scale += 'M' + p + ',5';
 				scale += 'l0,15';
 			}
-
+/*
 			ticks.push({
 				element: paper.text(0, 0, (tall ? unit : '') + Math.ceil(p) + (!tall ? unit : ''))
 				       .attr('text-anchor', 'end')
@@ -212,7 +212,7 @@ var QuadAxes = function(id, config, dataSpace, cam){
 				X: (tall ? 30 : p),
 				Y: (tall ? p : 30),
 				R: (tall ? 0 : -Math.PI / 8)
-			});
+			});*/
 		}
 		ticks.scalePath = paper.path(scale).attr('stroke', config.axes.colors.tick); // finally, draw the ticks
 		ticks.scalePath.Tag = 'scale path for ' + (tall ? 'y ' : 'x ');
@@ -298,10 +298,8 @@ var QuadAxes = function(id, config, dataSpace, cam){
 
 			for (var i = scale.length; i--;) {
 				var t = scale[i], r = t.R;
-				var m = scaleMatrix.X(rot2d(t.R, 3)).translate([t.X, t.Y]).serialize('svg');
-				//matrix([cos(r) * 1.25, lineWidth * sin(r) * 0.75, -sin(r) * 1.25, lineWidth * cos(r) * 0.75, t.X, t.Y]);
-
-				t.element.transform(m);
+				//var m = scaleMatrix.X(rot2d(t.R, 3)).translate([t.X, t.Y]).serialize('svg');
+				//t.element.transform(m);
 			}
 		});
 
@@ -506,7 +504,9 @@ var QuadChart = function(id, config){
 
 
 	data.onBoundsChanged(function(){
+		var m = data.median();
 		console.log('bounds changed');
+		view.setOrigin([m.x, m.y]);
 		viewCamera.goHome(view.paper, data);
 	});
 
@@ -540,6 +540,7 @@ var QuadData = function(config, onBoundsChanged){
 	var hoods = [];
 	var hoodRadius = config.hoodRadius;
 	var mean = {x: 0, y: 0};
+	var median = {x: 0, y: 0};
 	var standardDeviation = {x: 0, y: 0};
 //-----------------------------------------------------------------------------
 //    ___     _          _          __              _   _             
@@ -735,13 +736,20 @@ var QuadData = function(config, onBoundsChanged){
 		var variance = QuadStats.variance(data, mean);
 		updateStdDev(data, variance, false);
 
-		allData = allData.concat(data);
-
-		// kick off bounds changed event
-		if(boundsChanged) onBoundsChanged();
+		// sort the data, by X and Y. Keep the median of both
+		allData = allData.concat(data).sort(function(a, b){
+			return a.X - b.X;
+		});
+		median.x = allData[allData.length >> 1].X;
+		median.y = allData.sort(function(a, b){
+			return a.Y - b.Y;
+		})[allData.length >> 1].Y;
 
 		// draw the new points and hoods
 		onRender(data, /*extractNeighbors(data)*/[]);
+
+		// kick off bounds changed event
+		if(boundsChanged) onBoundsChanged();
 	};
 //-----------------------------------------------------------------------------
 	var remove = function(data){
@@ -777,6 +785,7 @@ var QuadData = function(config, onBoundsChanged){
 			min: function(){ return dataSpace.Min.y; }
 		},
 		mean: function(){ return mean; },
+		median: function(){ return median; },
 		standardDeviation: function(){ return standardDeviation; },
 		allData:  function(){ return allData; },
 		allHoods: function(){ return hoods; }
@@ -908,7 +917,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 	var focus = function(){
 		QUAD_LAST_POINT = this;
 		info.show();
-		cam.move(point.X, point.Y);
+		cam.jump(point.X, point.Y);
 	};
 //-----------------------------------------------------------------------------
 	var quadIndex = inQuadrant([point.X, point.Y]);
@@ -1300,25 +1309,29 @@ var QuadView = function(id, config, dataSpace, cam){
 	renderQuadrantBackgrounds();
 	cam.onMove(viewChanged);
 	cam.onGoHome(function(){
-		var z; // this will be fed into the move invocation as zoom
-		var stddev = dataSpace.standardDeviation();
+		var qw = paper.width >> 2;
+		var qh = paper.height >> 2;
+		var std = dataSpace.standardDeviation();
+		var median = dataSpace.median();
 
-		var w, h;
-		var dw = w = Math.abs(dataSpace.x.max() - dataSpace.x.min());
-			dw = dw < paper.width ? paper.width : dw;
-		var dh = h = Math.abs(dataSpace.y.max() - dataSpace.y.min());
-			dh = dh < paper.height ? paper.height : dh;
+		var calculateZoom = function(){
+			var a = Math.abs, dMax, dMin, tall = false;
 
-		var sf = w > h ? w : h;
+			if(std.x > std.y){
+				dMax = a(median.x - dataSpace.x.max());
+				dMin = a(median.x - dataSpace.x.min());
+			}
+			else{
+				tall = true;
+				dMax = a(median.y - dataSpace.y.max());
+				dMin = a(median.y - dataSpace.y.min());			
+			}
 
-		if(Math.abs(w - dw) < Math.abs(h - dh)){
-			z = sf / (stddev.x * 4);
-		}
-		else{
-			z = sf / (stddev.y * 4);
-		} this.baseZoom = z;
+			var divisior = tall ? qh : qw;
+			return divisior / (dMin < dMax ? dMin : dMax); 
+		};
 
-		cam.move(origin[0], origin[1], z);
+		cam.jump(origin[0], origin[1], calculateZoom());
 	});
 	dataSpace.onRender(render);
 

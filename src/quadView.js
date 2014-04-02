@@ -166,23 +166,20 @@ var QuadView = function(id, config, dataSpace, cam){
 			var a = Math.abs, dMax, dMin, tall = false;
 
 			if(std.x > std.y){
-				dMax = a(median.X - dataSpace.x.max());
-				dMin = a(median.X - dataSpace.x.min());
+				dMax = a(median.x - dataSpace.x.max());
+				dMin = a(median.x - dataSpace.x.min());
 			}
 			else{
 				tall = true;
-				dMax = a(median.Y - dataSpace.y.max());
-				dMin = a(median.Y - dataSpace.y.min());			
+				dMax = a(median.y - dataSpace.y.max());
+				dMin = a(median.y - dataSpace.y.min());			
 			}
 
-			return { isTall: tall, value: dMin < dMax ? dMin : dMax }; 
+			var divisior = tall ? qh : qw;
+			return divisior / (dMin < dMax ? dMin : dMax); 
 		};
 
-		var zoom;
-		with(calculateZoom()){
-			zoom = isTall ? qh / value : qw / value;
-		}
-		cam.jump(origin[0], origin[1], zoom);
+		cam.jump(origin[0], origin[1], calculateZoom());
 	});
 	dataSpace.onRender(render);
 

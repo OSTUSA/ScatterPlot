@@ -12,6 +12,7 @@ var QuadChart = function(id, config){
 	data.onBoundsChanged(function(){
 		var m = data.median();
 		console.log('bounds changed');
+		view.setOrigin([m.x, m.y]);
 		viewCamera.goHome(view.paper, data);
 	});
 
