@@ -99,6 +99,8 @@ function QuadCamera(x, y, z){
 			}
 
 			var divisior = tall ? qh : qw;
+
+			if(dMax * dMin == 0) return 1; // avoid div by 0
 			return (this.baseZoom = divisior / (dMin < dMax ? dMin : dMax)); 
 		}
 	};
