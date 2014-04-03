@@ -93,6 +93,8 @@ var QuadView = function(id, config, dataSpace, cam){
 	}
 //-----------------------------------------------------------------------------
 	var render = function(points, hoods){
+		if(!cam.baseZoom) cam.updateBaseZoom(paper, dataSpace);
+
 		for(var i = points.length; i--;){
 			QuadDataPoint(points[i], paper, quadrants, cam);
 		}
@@ -161,29 +163,8 @@ var QuadView = function(id, config, dataSpace, cam){
 	renderQuadrantBackgrounds();
 	cam.onMove(viewChanged);
 	cam.onGoHome(function(){
-		var qw = paper.width >> 2;
-		var qh = paper.height >> 2;
-		var std = dataSpace.standardDeviation();
-		var median = dataSpace.median();
-
-		var calculateZoom = function(){
-			var a = Math.abs, dMax, dMin, tall = false;
-
-			if(std.x > std.y){
-				dMax = a(median.x - dataSpace.x.max());
-				dMin = a(median.x - dataSpace.x.min());
-			}
-			else{
-				tall = true;
-				dMax = a(median.y - dataSpace.y.max());
-				dMin = a(median.y - dataSpace.y.min());			
-			}
-
-			var divisior = tall ? qh : qw;
-			return divisior / (dMin < dMax ? dMin : dMax); 
-		};
-
-		cam.jump(origin[0], origin[1], calculateZoom());
+		if(!cam.baseZoom) cam.updateBaseZoom(paper, dataSpace);
+		cam.jump(origin[0], origin[1], cam.baseZoom);
 	});
 	dataSpace.onRender(render);
 

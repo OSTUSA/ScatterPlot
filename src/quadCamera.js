@@ -10,7 +10,7 @@ function QuadCamera(x, y, z){
 			x: x || 0, y: y || 0
 		},
 		zoom: z || 1,
-		baseZoom: z || 1,
+		baseZoom: 0,
 		onMove: function(callback){
 			if(typeof(callback) !== 'function')
 				throw new UserException(
@@ -80,6 +80,26 @@ function QuadCamera(x, y, z){
 		goHome: function(viewPaper, dataSpace, callback){
 			if(callback) callback();
 			this.emitGoHome(this);
+		},
+		updateBaseZoom: function(viewPaper, dataSpace){
+			var a = Math.abs, dMax, dMin, tall = false;
+			var qw = viewPaper.width >> 2;
+			var qh = viewPaper.height >> 2;
+			var median = dataSpace.median();
+			var std = dataSpace.standardDeviation();
+
+			if(std.x > std.y){
+				dMax = a(median.x - dataSpace.x.max());
+				dMin = a(median.x - dataSpace.x.min());
+			}
+			else{
+				tall = true;
+				dMax = a(median.y - dataSpace.y.max());
+				dMin = a(median.y - dataSpace.y.min());			
+			}
+
+			var divisior = tall ? qh : qw;
+			return (this.baseZoom = divisior / (dMin < dMax ? dMin : dMax)); 
 		}
 	};
 }

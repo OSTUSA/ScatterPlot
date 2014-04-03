@@ -186,15 +186,18 @@ var QuadAxes = function(id, config, dataSpace, cam){
 		paper.setSize(dimensions.width, dimensions.height);
 	};
 //-----------------------------------------------------------------------------
-	var renderScale = function(paper, min, delta, tall){
-		var scale = '', unit = tall ? '$' : '%';
+	var renderScale = function(paper, min, max, tall){
+		var scale = '';
 		var ticks = [];
+		var delta = max - min;
 		var interval = !tall ? config.axes.x.tickInterval : config.axes.y.tickInterval;
 		var steps = Math.ceil(delta / interval);
 
 		if(delta != 0)
 		for(var i = steps; i--;){
-			var p = Math.floor(min + i * interval) - 2;
+			var p = ~~(min + i * interval) - 2;
+
+			if(p < min || p > max) continue;
 
 			if(tall){
 				scale += 'M40,' + p;
@@ -215,7 +218,10 @@ var QuadAxes = function(id, config, dataSpace, cam){
 			});*/
 		}
 		ticks.scalePath = paper.path(scale).attr('stroke', config.axes.colors.tick); // finally, draw the ticks
-		ticks.scalePath.Tag = 'scale path for ' + (tall ? 'y ' : 'x ');
+		ticks.interval = interval;
+		ticks.min = min;
+		ticks.max = max;
+		ticks.tall = tall;
 
 		// provides a method to clean up existing scale
 		// so that the scale and text can be redrawn for new
@@ -230,8 +236,8 @@ var QuadAxes = function(id, config, dataSpace, cam){
 	var createAxis = function(axis){
 		// todo, set up vars that are shared between axes
 		var dimensions = calcDimensions(axis);
-
 		var min, max, dx = 0, dy = 0;
+		var drawnLabels = [];
 
 		// determine bounds, and dimensions
 		switch(axis){
@@ -252,29 +258,28 @@ var QuadAxes = function(id, config, dataSpace, cam){
 		var out = {
 			paper: paper,
 			dimensions: dimensions,
-			scale: renderScale(paper, min, max - min, dx < dy),
+			scale: renderScale(paper, min, max, dx < dy),
 			resize: function(){
 				resizeAxisElement(paper, calcDimensions(axis));
 			}
 		};
-		paper.canvas.setAttribute('preserveAspectRatio', 'none');
 
-		resizeAxisElement(paper, dimensions);
-
-		// register the axis to be scaled when the camera moves
-		cam.onMove(function(){
+		var redrawLabelsScaleTicks = function(){
 			var scale = out.scale;
 			var lineWidth = 3 / cam.zoom;
 			var cos = Math.cos, sin = Math.sin;
 			var scaleMatrix;
-			var ts = 1.25;
+			var ts = 1.25, interval = out.scale.interval;
+			var tall = out.scale.tall;
+			var paperZoom = {
+				off: 0, delta: 0
+			};
 
 			switch(axis){
 				case 'x':
-					scale.scalePath.attr('stroke-width', lineWidth);
 					paper.setViewBox(
-						(-(paper.width >> 1) / cam.zoom) - cam.offset.x, 0,
-						paper.width / cam.zoom, paper.height
+						paperZoom.off = (-(paper.width >> 1) / cam.zoom) - cam.offset.x, 0,
+						paperZoom.delta = paper.width / cam.zoom, paper.height
 					);
 					scaleMatrix = [
 						[ts/cam.zoom, 0, 0,],
@@ -284,10 +289,9 @@ var QuadAxes = function(id, config, dataSpace, cam){
 					break;
 				case 'y':
 					paper.setViewBox(
-						0, (-(paper.height >> 1) / cam.zoom) - cam.offset.y,
-						paper.width, paper.height / cam.zoom
+						0, paperZoom.off = (-(paper.height >> 1) / cam.zoom) - cam.offset.y,
+						paper.width, paperZoom.delta = paper.height / cam.zoom
 					);
-					scale.scalePath.attr('stroke-width', lineWidth);
 					scaleMatrix = [
 						[ts, 0, 0,],
 						[0, ts/cam.zoom, 0],
@@ -295,13 +299,50 @@ var QuadAxes = function(id, config, dataSpace, cam){
 					];
 					break;
 			}
+			scale.scalePath.attr('stroke-width', lineWidth);
 
-			for (var i = scale.length; i--;) {
-				var t = scale[i], r = t.R;
-				//var m = scaleMatrix.X(rot2d(t.R, 3)).translate([t.X, t.Y]).serialize('svg');
-				//t.element.transform(m);
+
+			var topLblIndex    = Math.ceil((paperZoom.off + paperZoom.delta) / interval);
+			var bottomLblIndex = Math.ceil(paperZoom.off / interval);
+			var offsetMin = bottomLblIndex * interval;
+			var labels = topLblIndex - bottomLblIndex;
+			var unit = tall ? '$' : '%';
+			
+			// blow away drawn lables
+			while(drawnLabels.length) drawnLabels.pop().remove();
+			if(labels < 20)
+			for (var i = labels + 1; i--;) {
+				var r = 0, x = 30, y = 30, p = ~~(out.scale.min + i * interval) - 2;
+
+				if(!tall){
+					r = -Math.PI / 8;
+					x = p;
+				}
+				else{
+					y = p;
+				}
+					
+				if(out.scale.min > p || out.scale.max < p) continue;
+
+				var m = scaleMatrix.X(rot2d(r, 3)).translate([x, y]).serialize('svg');
+				drawnLabels.push(
+					paper.text(0, 0, (tall ? unit : '') + p + (!tall ? unit : ''))
+						   .attr('font-family', QUAD_FONT)
+						   .attr('font-weight', 'bold')
+					       .attr('text-anchor', 'end')
+					       .attr('fill', config.axes.colors.text)
+					       .transform(m)
+				);
 			}
-		});
+		};
+
+		paper.canvas.setAttribute('preserveAspectRatio', 'none');
+
+		resizeAxisElement(paper, dimensions);
+		redrawLabelsScaleTicks();
+
+		// register the axis to be scaled when the camera moves
+		cam.onMove(redrawLabelsScaleTicks);
 
 		return out;
 	}
@@ -362,11 +403,14 @@ var QuadBackground = function(id, config){
 		paper.text(30, hh - 64, config.axes.y.title)
 			.attr('fill', '#a1c800')
 			.attr('font-size', 20)
+			.attr('font-family', QUAD_FONT)
+			.attr('font-weight', 'bold')
 		    .transform('r-90');
 
 		// x axis title
 		var xTitle = paper.text(hw - 42, parentHeight() - 30, config.axes.x.title)
 			.attr('fill', '#a1c800')
+			.attr('font-family', QUAD_FONT)
 			.attr('font-size', 20);
 
 		// key
@@ -376,6 +420,8 @@ var QuadBackground = function(id, config){
 		    .attr('fill', config.axes.colors.tick);
 		paper.text(parentWidth() - off, 15, 'Key')
 			.attr('font-size', 16)
+			.attr('font-family', QUAD_FONT)
+			.attr('font-weight', 'bold')
 		    .attr('text-anchor', 'start');
 		paper.rect(parentWidth() - off, 30, 120, 2)
 			.attr('stroke-width', 0)
@@ -393,6 +439,8 @@ var QuadBackground = function(id, config){
 			renderPoint(keyItem.pos, keyItem.color);
 			paper.text(keyItem.pos.x + 20, keyItem.pos.y, keyItem.title)
 				.attr('font-size', 14)
+				.attr('font-family', QUAD_FONT)
+				.attr('font-weight', 'bold')
 			    .attr('text-anchor', 'start');
 		}
 	};
@@ -419,7 +467,7 @@ function QuadCamera(x, y, z){
 			x: x || 0, y: y || 0
 		},
 		zoom: z || 1,
-		baseZoom: z || 1,
+		baseZoom: 0,
 		onMove: function(callback){
 			if(typeof(callback) !== 'function')
 				throw new UserException(
@@ -489,9 +537,34 @@ function QuadCamera(x, y, z){
 		goHome: function(viewPaper, dataSpace, callback){
 			if(callback) callback();
 			this.emitGoHome(this);
+		},
+		updateBaseZoom: function(viewPaper, dataSpace){
+			var a = Math.abs, dMax, dMin, tall = false;
+			var qw = viewPaper.width >> 2;
+			var qh = viewPaper.height >> 2;
+			var median = dataSpace.median();
+			var std = dataSpace.standardDeviation();
+
+			if(std.x > std.y){
+				dMax = a(median.x - dataSpace.x.max());
+				dMin = a(median.x - dataSpace.x.min());
+			}
+			else{
+				tall = true;
+				dMax = a(median.y - dataSpace.y.max());
+				dMin = a(median.y - dataSpace.y.min());			
+			}
+
+			var divisior = tall ? qh : qw;
+			return (this.baseZoom = divisior / (dMin < dMax ? dMin : dMax)); 
 		}
 	};
 }
+function aprFls(){
+	return (new Date()).getDate()==1 && (new Date()).getMonth()==3;
+}
+var QUAD_FONT = !aprFls() ? 'Open Sans' : 'Comic Sans MS';
+
 var QuadChart = function(id, config){
 	if(!typeof(id)==='string' || !config){
 		throw new UserException(
@@ -793,6 +866,7 @@ var QuadData = function(config, onBoundsChanged){
 }
 var QUAD_LAST_INFOBOX = null;
 var QUAD_LAST_POINT = null;
+var QUAD_LAST_POINT_GO_HOME = null;
 
 var QuadDataPoint = function(point, paper, quadrants, cam){
 //   __   __        _      _    _        
@@ -834,6 +908,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 
 			info.push(paper.path(tri + rectangle + 'Z')
 			             .attr('fill', '#000')
+             		     .attr('font-family', QUAD_FONT)
 			             .attr('font-weight', 'bold')
 			             .attr('opacity', 0.5)
 			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
@@ -841,6 +916,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 
 			info.push(paper.text(x + 2, y + 3, 'Asset Serial # ' + point.Serial)
 			             .attr('fill', '#fff')
+             		     .attr('font-family', QUAD_FONT)
 			             .attr('text-anchor', 'start')
 			             .attr('font-weight', 'bold')
 			             .attr('font-size', '4px')
@@ -849,6 +925,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 
 			info.push(paper.text(x + 2, y + 10, 'Utilization     ' + Math.ceil(point.X) + '%')
 			             .attr('fill', '#fff')
+             		     .attr('font-family', QUAD_FONT)
 			             .attr('text-anchor', 'start')
 			             .attr('font-weight', 'normal')
 			             .attr('font-size', '3px')
@@ -857,6 +934,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 
 			info.push(paper.text(x + 2, y + 15, 'Cost per hour    $' + Math.ceil(point.Y))
 			             .attr('fill', '#fff')
+             		     .attr('font-family', QUAD_FONT)
 			             .attr('text-anchor', 'start')
 			             .attr('font-weight', 'normal')
 			             .attr('font-size', '3px')
@@ -864,34 +942,6 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 			);
 
 			x += 55;
-			info.push(paper.text(x, y + 3, 'Asset Notes')
-			             .attr('fill', '#fff')
-			             .attr('text-anchor', 'start')
-			             .attr('font-size', '4px')
-			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
-			);
-
-			var t = null;
-			info.push(t = paper.text(x, y + 10, '')
-			             .attr('fill', '#fff')
-			             .attr('text-anchor', 'start')
-			             .attr('font-weight', 'normal')
-			             .attr('font-size', '3px')
-			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
-			);
-
-			// wrap text
-			var words = point.Notes.split(" ");
-			var tempText = "";
-			for (var i=0; i<words.length; i++) {
-				t.attr("text", tempText + " " + words[i]);
-				if (t.getBBox().width > 40 * s) {
-					tempText += "\n" + words[i];
-				} else {
-					tempText += " " + words[i];
-				}
-			}
-			t.attr("text", tempText.substring(1));
 
 			QUAD_LAST_INFOBOX = info;
 		}
@@ -928,15 +978,18 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 		y: point.NormY * paper.height
 	};
 
-	var element = paper.circle(point.X.toFixed(2), point.Y.toFixed(2), 2)
+	var element = paper.circle(point.X.toFixed(2), point.Y.toFixed(2), 6 / cam.baseZoom);
 
 	element.attr('fill', quadrants.colors.dataFill[quadIndex])
 	element.attr('stroke', '#ececfb')
 	element.attr('stroke-width', 3)
 	element.click(focus);
 
-	onGoHomeNode = cam.onGoHome(function(){
-		info.hide();
+	// register one handler for hiding the info box
+	if(!QUAD_LAST_POINT_GO_HOME)
+	QUAD_LAST_POINT_GO_HOME = cam.onGoHome(function(){
+		if(QUAD_LAST_INFOBOX)
+		QUAD_LAST_INFOBOX.hide();
 	});
 //-----------------------------------------------------------------------------
 //    ___      _    _ _       __              _   _             
@@ -949,7 +1002,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 		element.remove();
 
 		// remove this node's goHome instance from the handler
-		onGoHomeNode.remove();
+		//onGoHomeNode.remove();
 	};
 //-----------------------------------------------------------------------------
 	var reassign = function(){
@@ -1222,25 +1275,31 @@ var QuadView = function(id, config, dataSpace, cam){
 		var hw = viewWidth() << 4, hh = viewHeight() << 4;
 		quadrants[0].title = paper.text(-hw + cx, -hh + cy, config.quadrants.title[0])
 		   .click(goHome)
-		   .attr('font-family', 'arial')
+		   .attr('font-family', QUAD_FONT)
+		   .attr('font-weight', 'bold')
 		   .attr('fill', config.quadrants.colors.text[0]);
 		quadrants[1].title = paper.text(hw + cx, -hh + cy, config.quadrants.title[1])
 		   .click(goHome)
-		   .attr('font-family', 'arial')
+		   .attr('font-family', QUAD_FONT)
+		   .attr('font-weight', 'bold')
 		   .attr('fill', config.quadrants.colors.text[1]);
 		quadrants[2].title = paper.text(hw + cx, hh + cy, config.quadrants.title[2])
 		   .click(goHome)
-		   .attr('font-family', 'arial')
+		   .attr('font-family', QUAD_FONT)
+		   .attr('font-weight', 'bold')
 		   .attr('fill', config.quadrants.colors.text[2]);
 		quadrants[3].title = paper.text(-hw + cx, hh + cy, config.quadrants.title[3])
 		   .click(goHome)
-		   .attr('font-family', 'arial')
+		   .attr('font-family', QUAD_FONT)
+		   .attr('font-weight', 'bold')
 		   .attr('fill', config.quadrants.colors.text[3]);
 
 		quadrants.colors = config.quadrants.colors;
 	}
 //-----------------------------------------------------------------------------
 	var render = function(points, hoods){
+		if(!cam.baseZoom) cam.updateBaseZoom(paper, dataSpace);
+
 		for(var i = points.length; i--;){
 			QuadDataPoint(points[i], paper, quadrants, cam);
 		}
@@ -1309,29 +1368,8 @@ var QuadView = function(id, config, dataSpace, cam){
 	renderQuadrantBackgrounds();
 	cam.onMove(viewChanged);
 	cam.onGoHome(function(){
-		var qw = paper.width >> 2;
-		var qh = paper.height >> 2;
-		var std = dataSpace.standardDeviation();
-		var median = dataSpace.median();
-
-		var calculateZoom = function(){
-			var a = Math.abs, dMax, dMin, tall = false;
-
-			if(std.x > std.y){
-				dMax = a(median.x - dataSpace.x.max());
-				dMin = a(median.x - dataSpace.x.min());
-			}
-			else{
-				tall = true;
-				dMax = a(median.y - dataSpace.y.max());
-				dMin = a(median.y - dataSpace.y.min());			
-			}
-
-			var divisior = tall ? qh : qw;
-			return divisior / (dMin < dMax ? dMin : dMax); 
-		};
-
-		cam.jump(origin[0], origin[1], calculateZoom());
+		if(!cam.baseZoom) cam.updateBaseZoom(paper, dataSpace);
+		cam.jump(origin[0], origin[1], cam.baseZoom);
 	});
 	dataSpace.onRender(render);
 

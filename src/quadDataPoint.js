@@ -1,5 +1,6 @@
 var QUAD_LAST_INFOBOX = null;
 var QUAD_LAST_POINT = null;
+var QUAD_LAST_POINT_GO_HOME = null;
 
 var QuadDataPoint = function(point, paper, quadrants, cam){
 //   __   __        _      _    _        
@@ -111,15 +112,18 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 		y: point.NormY * paper.height
 	};
 
-	var element = paper.circle(point.X.toFixed(2), point.Y.toFixed(2), 2)
+	var element = paper.circle(point.X.toFixed(2), point.Y.toFixed(2), 6 / cam.baseZoom);
 
 	element.attr('fill', quadrants.colors.dataFill[quadIndex])
 	element.attr('stroke', '#ececfb')
 	element.attr('stroke-width', 3)
 	element.click(focus);
 
-	onGoHomeNode = cam.onGoHome(function(){
-		info.hide();
+	// register one handler for hiding the info box
+	if(!QUAD_LAST_POINT_GO_HOME)
+	QUAD_LAST_POINT_GO_HOME = cam.onGoHome(function(){
+		if(QUAD_LAST_INFOBOX)
+		QUAD_LAST_INFOBOX.hide();
 	});
 //-----------------------------------------------------------------------------
 //    ___      _    _ _       __              _   _             
@@ -132,7 +136,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 		element.remove();
 
 		// remove this node's goHome instance from the handler
-		onGoHomeNode.remove();
+		//onGoHomeNode.remove();
 	};
 //-----------------------------------------------------------------------------
 	var reassign = function(){
