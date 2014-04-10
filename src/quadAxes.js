@@ -66,14 +66,16 @@ var QuadAxes = function(id, config, dataSpace, cam){
 		var scale = '';
 		var ticks = [];
 		var delta = max - min;
-		var interval = !tall ? config.axes.x.tickInterval : config.axes.y.tickInterval;
+		var stdDev = dataSpace.standardDeviation();
+		var interval = !tall ? config.axes.x.tickInterval / stdDev.x :
+		                       config.axes.y.tickInterval / stdDev.y;
 		var steps = Math.ceil(delta / interval);
 
 		if(delta != 0)
 		for(var i = steps; i--;){
-			var p = ~~(min + i * interval) - 2;
+			var p = ((min + i * interval) - 2).toFixed(2);
 
-			if(p < min || p > max) continue;
+			if(p < min || p >= max + interval) continue;
 
 			if(tall){
 				scale += 'M40,' + p;
@@ -83,15 +85,7 @@ var QuadAxes = function(id, config, dataSpace, cam){
 				scale += 'M' + p + ',5';
 				scale += 'l0,15';
 			}
-/*
-			ticks.push({
-				element: paper.text(0, 0, (tall ? unit : '') + Math.ceil(p) + (!tall ? unit : ''))
-				       .attr('text-anchor', 'end')
-				       .attr('fill', config.axes.colors.text),
-				X: (tall ? 30 : p),
-				Y: (tall ? p : 30),
-				R: (tall ? 0 : -Math.PI / 8)
-			});*/
+
 		}
 		ticks.scalePath = paper.path(scale).attr('stroke', config.axes.colors.tick); // finally, draw the ticks
 		ticks.interval = interval;
@@ -183,12 +177,17 @@ var QuadAxes = function(id, config, dataSpace, cam){
 			var offsetMin = bottomLblIndex * interval;
 			var labels = topLblIndex - bottomLblIndex;
 			var unit = tall ? '$' : '%';
-			
+			var min = tall ? paper.canvas.viewBox.baseVal.y : paper.canvas.viewBox.baseVal.x;
+			var max = min + (tall ? paper.canvas.viewBox.baseVal.height : paper.canvas.viewBox.baseVal.width);
+
+			min = (~~(min / interval) + 1) * interval;
+			max = (~~(max / interval) + 1) * interval;
+
 			// blow away drawn lables
 			while(drawnLabels.length) drawnLabels.pop().remove();
 			if(labels < 20)
 			for (var i = labels + 1; i--;) {
-				var r = 0, x = 30, y = 30, p = ~~(out.scale.min + i * interval) - 2;
+				var r = 0, x = 30, y = 30, p = ((min + i * interval) - 2);
 
 				if(!tall){
 					r = -Math.PI / 8;
@@ -202,7 +201,7 @@ var QuadAxes = function(id, config, dataSpace, cam){
 
 				var m = scaleMatrix.X(rot2d(r, 3)).translate([x, y]).serialize('svg');
 				drawnLabels.push(
-					paper.text(0, 0, (tall ? unit : '') + p + (!tall ? unit : ''))
+					paper.text(0, 0, (tall ? unit : '') + Math.ceil(p) + (!tall ? unit : ''))
 						   .attr('font-family', QUAD_FONT)
 						   .attr('font-weight', 'bold')
 					       .attr('text-anchor', 'end')
