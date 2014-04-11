@@ -68,25 +68,29 @@ var QuadView = function(id, config, dataSpace, cam){
 		}
 
 		var hw = viewWidth() << 4, hh = viewHeight() << 4;
-		quadrants[0].title = paper.text(-hw + cx, -hh + cy, config.quadrants.title[0])
+		quadrants[0].title = paper.text(0, 0, config.quadrants.title[0])
 		   .click(goHome)
 		   .attr('font-family', QUAD_FONT)
 		   .attr('font-weight', 'bold')
+		   .attr('text-anchor', 'end')
 		   .attr('fill', config.quadrants.colors.text[0]);
-		quadrants[1].title = paper.text(hw + cx, -hh + cy, config.quadrants.title[1])
+		quadrants[1].title = paper.text(0, 0, config.quadrants.title[1])
 		   .click(goHome)
 		   .attr('font-family', QUAD_FONT)
 		   .attr('font-weight', 'bold')
+		   .attr('text-anchor', 'start')
 		   .attr('fill', config.quadrants.colors.text[1]);
-		quadrants[2].title = paper.text(hw + cx, hh + cy, config.quadrants.title[2])
+		quadrants[2].title = paper.text(0, 0, config.quadrants.title[2])
 		   .click(goHome)
 		   .attr('font-family', QUAD_FONT)
 		   .attr('font-weight', 'bold')
+		   .attr('text-anchor', 'start')
 		   .attr('fill', config.quadrants.colors.text[2]);
-		quadrants[3].title = paper.text(-hw + cx, hh + cy, config.quadrants.title[3])
+		quadrants[3].title = paper.text(0, 0, config.quadrants.title[3])
 		   .click(goHome)
 		   .attr('font-family', QUAD_FONT)
 		   .attr('font-weight', 'bold')
+		   .attr('text-anchor', 'end')
 		   .attr('fill', config.quadrants.colors.text[3]);
 
 		quadrants.colors = config.quadrants.colors;
@@ -112,6 +116,40 @@ var QuadView = function(id, config, dataSpace, cam){
 			paper.height / camera.zoom,
 			false
 		);
+
+		var center = {
+			x: paper.canvas.viewBox.baseVal.x + (paper.canvas.viewBox.baseVal.width >> 1),
+			y: paper.canvas.viewBox.baseVal.y + (paper.canvas.viewBox.baseVal.height >> 1)
+		};
+
+		for (var i = quadrants.length; i--;) {
+			var x, y, padding = 60;
+
+// 0  |  1
+//---------
+// 3  |  2
+
+			switch(i){
+				case 0: // relocate
+					x = center.x > origin[0] - padding ? origin[0] - padding : center.x;
+					y = center.y > origin[1] - padding ? origin[1] - padding : center.y;
+					break;
+				case 1: // retain
+					x = center.x < origin[0] + padding ? origin[0] + padding : center.x;
+					y = center.y > origin[1] - padding ? origin[1] - padding : center.y;
+					break;
+				case 2: // replace
+					x = center.x < origin[0] + padding ? origin[0] + padding : center.x;
+					y = center.y < origin[1] + padding ? origin[1] + padding : center.y;
+					break;
+				case 3:
+					x = (center.x > origin[0] - padding) ? origin[0] - padding : center.x;
+					y = center.y < origin[1] + padding ? origin[1] + padding : center.y;
+					break;
+			}
+
+			quadrants[i].title.transform(I(3).translate([x, y]).serialize('svg'));
+		};
 	};
 //-----------------------------------------------------------------------------
 	var setOrigin = function(point){
@@ -137,9 +175,6 @@ var QuadView = function(id, config, dataSpace, cam){
 			quadrants[i].attr({
 				x: offsets.quad[i][0], y: offsets.quad[i][1],
 				width: parentWidth(), height: parentHeight()
-			});
-			quadrants[i].title.attr({
-				x: offsets.text[i][0], y: offsets.text[i][1]
 			});
 		}
 

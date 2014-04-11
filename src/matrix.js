@@ -4,7 +4,7 @@
 //    \___|_\___/_.__/\__,_|_| |_||_\___|_| .__/\___|_| /__/
 //                                        |_|               
 var rot2d = function(theta, size){
-		// construct a result matrix
+	// construct a result matrix
 	var r = new Array(size);
 	for(var i = size; i--; ){
 		r[i] = Array
@@ -19,6 +19,17 @@ var rot2d = function(theta, size){
 	r[2][2] = 1;
 
 	return r;
+};
+//-----------------------------------------------------------------------------
+var I = function(size){
+	var out = new Array(size);
+	for(var i = size; i--;){
+		out[i] = [];
+		for(var j = 0; j < size; j++)
+			out[i].push(j == i ? 1 : 0);
+	}
+
+	return out;
 };
 //-----------------------------------------------------------------------------
 //    __  __     _   _            _    
