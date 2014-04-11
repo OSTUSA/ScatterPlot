@@ -44,6 +44,7 @@ var QuadBackground = function(id, config){
 		var xTitle = paper.text(hw - 42, parentHeight() - 30, config.axes.x.title)
 			.attr('fill', '#a1c800')
 			.attr('font-family', QUAD_FONT)
+			.attr('font-weight', 'bold')
 			.attr('font-size', 20);
 
 		// key
