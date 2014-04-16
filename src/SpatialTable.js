@@ -3,6 +3,10 @@ function SpatialTable(cellSize){
 	t.Max = {x: null, y: null};
 	t.Min = {x: null, y: null};
 
+        (1).__proto__.near = function(n, bias){
+                return Math.abs(this - n) <= bias;
+        };
+
         var hash = function(point){
                 var x = Math.floor(point.x / cellSize);
                 var y = Math.floor(point.y / cellSize);

@@ -222,6 +222,20 @@ var QuadData = function(config, onBoundsChanged){
 		if(boundsChanged) onBoundsChanged();
 	};
 //-----------------------------------------------------------------------------
+	var getSingular = function(point, tolerance){
+		var results = dataSpace.Get(point, tolerance);
+		
+		if(results.length > 1)
+			for(var i = results.length; i--;){
+				if(results[i].Utilization.near(point.x, tolerance) &&
+				   results[i].CostPerHour.near(point.y, tolerance)){
+					return results[i];
+				}
+			}
+
+		return results[0];
+	};
+//-----------------------------------------------------------------------------
 	var remove = function(data){
 
 	};
@@ -243,6 +257,7 @@ var QuadData = function(config, onBoundsChanged){
 	return {
 		add: add,
 		remove: remove,
+		getSingle: getSingular,
 		clear: clear,
 		onRender: function(callback){ return _onRenderCallbacks.add(callback); },
 		onBoundsChanged: function(callback){ return _onBoundsChangedCallbacks.add(callback); },
