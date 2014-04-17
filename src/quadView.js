@@ -61,10 +61,38 @@ var QuadView = function(id, config, dataSpace, cam){
 
 		// style quadrants, and wire up click events
 		for(var i = 4; i--;){
+			var within = null;
 			quadrants[i].attr('fill', config.quadrants.colors.background[i])
 			            .attr('stroke', '#ececfb')
 			            .attr('stroke-width', 5)
 			            .click(goHome);
+			// 0  |  1
+			//---------
+			// 3  |  2
+			switch(i){
+				case 0:
+					within = function(point){
+						return point[0] < origin[0] && point[1] < origin[1]
+					}
+					break;
+				case 1:
+					within = function(point){
+						return point[0] > origin[0] && point[1] < origin[1]
+					}
+					break;
+				case 2:
+					within = function(point){
+						return point[0] > origin[0] && point[1] > origin[1]
+					}
+					break;
+				case 3:
+					within = function(point){
+						return point[0] < origin[0] && point[1] > origin[1]
+					}
+					break;
+			}
+
+			quadrants[i].within = within;
 		}
 
 		var hw = viewWidth() << 4, hh = viewHeight() << 4;

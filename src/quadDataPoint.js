@@ -87,11 +87,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 		for(var i = quadrants.length; i--;){
 			var q = quadrants[i];
 
-			var x = q.attrs.x, y = q.attrs.y;
-			var w = q.attrs.width, h = q.attrs.height;
-
-			if(point[0] >= x && point[0] < x + w &&
-			   point[1] >= y && point[1] < y + h)
+			if(q.within(point))
 				return i;
 		}
 
