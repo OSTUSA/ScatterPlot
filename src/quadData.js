@@ -222,24 +222,27 @@ var QuadData = function(config, onBoundsChanged){
 		if(boundsChanged) onBoundsChanged();
 	};
 //-----------------------------------------------------------------------------
-	var getSingular = function(point, tolerance){
+	var getSingular = function(point, tolerance, key){
 		var results = dataSpace.Get(point, tolerance);
 		
 		if(results.length > 1){
-			var nearest = -1, minDx = tolerance * 100, minDy = tolerance * 100;
+			var nearest = -1, minDist = 0;
 
 			for(var i = results.length; i--;){
 				var dx = Math.abs(results[i].X - point.x);
 				var dy = Math.abs(results[i].Y - point.y);
+				var dist = Math.sqrt(dx * dx - dy * dy);
 
-				if(dx < minDx && dy < minDy){
-					minDy = dy;
-					minDx = dx;
+				if(key == results[i].Serial){
+					return results[i];					
+				}
+				else if(nearest < 0 || dist < minDist){
+					minDist = dist;
 					nearest = i;
 				}
 			}
 
-			if(nearest >= 0 && minDx <= tolerance && minDy <= tolerance){
+			if(nearest >= 0 && minDist <= tolerance){
 				return results[i];
 			}
 		}
