@@ -28,7 +28,7 @@ function ll(){
 //    \___|_\___/_.__/\__,_|_| |_||_\___|_| .__/\___|_| /__/
 //                                        |_|               
 var rot2d = function(theta, size){
-		// construct a result matrix
+	// construct a result matrix
 	var r = new Array(size);
 	for(var i = size; i--; ){
 		r[i] = Array
@@ -43,6 +43,17 @@ var rot2d = function(theta, size){
 	r[2][2] = 1;
 
 	return r;
+};
+//-----------------------------------------------------------------------------
+var I = function(size){
+	var out = new Array(size);
+	for(var i = size; i--;){
+		out[i] = [];
+		for(var j = 0; j < size; j++)
+			out[i].push(j == i ? 1 : 0);
+	}
+
+	return out;
 };
 //-----------------------------------------------------------------------------
 //    __  __     _   _            _    
@@ -151,7 +162,6 @@ var QuadAxes = function(id, config, dataSpace, cam){
 		return parentEle.clientHeight - 120;
 	}
 //-----------------------------------------------------------------------------
-
 	var calcDimensions = function(axis){
 		var dimensions = {
 			top: 0,
@@ -186,18 +196,22 @@ var QuadAxes = function(id, config, dataSpace, cam){
 		paper.setSize(dimensions.width, dimensions.height);
 	};
 //-----------------------------------------------------------------------------
-	var renderScale = function(paper, min, max, tall){
+	var renderScale = function(paper, tall){
+		var vb = paper.canvas.viewBox.baseVal;
 		var scale = '';
 		var ticks = [];
+		var min = tall ? vb.y : vb.x;
+		var max = min + (tall ? vb.height : vb.width);
 		var delta = max - min;
-		var interval = !tall ? config.axes.x.tickInterval : config.axes.y.tickInterval;
-		var steps = Math.ceil(delta / interval);
+		var stdDev = dataSpace.standardDeviation();
+		var steps = tall ? config.axes.y.tickInterval : config.axes.x.tickInterval
+		var interval = delta / steps;
 
 		if(delta != 0)
 		for(var i = steps; i--;){
-			var p = ~~(min + i * interval) - 2;
+			var p = ((min + i * interval) - 2).toFixed(2);
 
-			if(p < min || p > max) continue;
+			if(p < min || p >= max + interval) continue;
 
 			if(tall){
 				scale += 'M40,' + p;
@@ -207,21 +221,14 @@ var QuadAxes = function(id, config, dataSpace, cam){
 				scale += 'M' + p + ',5';
 				scale += 'l0,15';
 			}
-/*
-			ticks.push({
-				element: paper.text(0, 0, (tall ? unit : '') + Math.ceil(p) + (!tall ? unit : ''))
-				       .attr('text-anchor', 'end')
-				       .attr('fill', config.axes.colors.text),
-				X: (tall ? 30 : p),
-				Y: (tall ? p : 30),
-				R: (tall ? 0 : -Math.PI / 8)
-			});*/
+
 		}
 		ticks.scalePath = paper.path(scale).attr('stroke', config.axes.colors.tick); // finally, draw the ticks
 		ticks.interval = interval;
 		ticks.min = min;
 		ticks.max = max;
 		ticks.tall = tall;
+		ticks.steps = steps;
 
 		// provides a method to clean up existing scale
 		// so that the scale and text can be redrawn for new
@@ -255,10 +262,12 @@ var QuadAxes = function(id, config, dataSpace, cam){
 
 		// create the paper, and dimension it
 		var paper = Raphael(parentEle, dimensions.width, dimensions.height);
+		paper.setViewBox(0, 0, dimensions.width, dimensions.height);
+
 		var out = {
 			paper: paper,
 			dimensions: dimensions,
-			scale: renderScale(paper, min, max, dx < dy),
+			scale: renderScale(paper, dx < dy),
 			resize: function(){
 				resizeAxisElement(paper, calcDimensions(axis));
 			}
@@ -275,44 +284,36 @@ var QuadAxes = function(id, config, dataSpace, cam){
 				off: 0, delta: 0
 			};
 
+			scaleMatrix = [
+				[ts, 0, 0,],
+				[0, ts, 0],
+				[0,  0, 1]
+			];
+
 			switch(axis){
 				case 'x':
-					paper.setViewBox(
-						paperZoom.off = (-(paper.width >> 1) / cam.zoom) - cam.offset.x, 0,
-						paperZoom.delta = paper.width / cam.zoom, paper.height
-					);
-					scaleMatrix = [
-						[ts/cam.zoom, 0, 0,],
-						[0, ts, 0],
-						[0,  0, 1]
-					];
+					paperZoom.off = (-(paper.width >> 1) / cam.zoom) - cam.offset.x;
+					paperZoom.delta = paper.width / cam.zoom;
 					break;
 				case 'y':
-					paper.setViewBox(
-						0, paperZoom.off = (-(paper.height >> 1) / cam.zoom) - cam.offset.y,
-						paper.width, paperZoom.delta = paper.height / cam.zoom
-					);
-					scaleMatrix = [
-						[ts, 0, 0,],
-						[0, ts/cam.zoom, 0],
-						[0,  0, 1]
-					];
+					paperZoom.off = (-(paper.height >> 1) / cam.zoom) - cam.offset.y;
+					paperZoom.delta = paper.height / cam.zoom;
 					break;
 			}
 			scale.scalePath.attr('stroke-width', lineWidth);
 
-
-			var topLblIndex    = Math.ceil((paperZoom.off + paperZoom.delta) / interval);
-			var bottomLblIndex = Math.ceil(paperZoom.off / interval);
-			var offsetMin = bottomLblIndex * interval;
-			var labels = topLblIndex - bottomLblIndex;
+			var vb = paper.canvas.viewBox.baseVal;
+			var labels = out.scale.steps;
 			var unit = tall ? '$' : '%';
-			
-			// blow away drawn lables
+			var min = tall ? vb.y : vb.x;
+			var max = min + (tall ? vb.height : vb.width);
+
+			// blow away drawn labels
 			while(drawnLabels.length) drawnLabels.pop().remove();
 			if(labels < 20)
 			for (var i = labels + 1; i--;) {
-				var r = 0, x = 30, y = 30, p = ~~(out.scale.min + i * interval) - 2;
+				var r = 0, x = 30, y = 30, p = ((min + i * interval) - 2);
+				var frac = i / labels;
 
 				if(!tall){
 					r = -Math.PI / 8;
@@ -322,11 +323,10 @@ var QuadAxes = function(id, config, dataSpace, cam){
 					y = p;
 				}
 					
-				if(out.scale.min > p || out.scale.max < p) continue;
-
+				if(out.scale.min > p || out.scale.max - interval < p) continue;
 				var m = scaleMatrix.X(rot2d(r, 3)).translate([x, y]).serialize('svg');
 				drawnLabels.push(
-					paper.text(0, 0, (tall ? unit : '') + p + (!tall ? unit : ''))
+					paper.text(0, 0, (tall ? unit : '') + Math.ceil(frac * paperZoom.delta + paperZoom.off) + (!tall ? unit : ''))
 						   .attr('font-family', QUAD_FONT)
 						   .attr('font-weight', 'bold')
 					       .attr('text-anchor', 'end')
@@ -355,8 +355,8 @@ var QuadAxes = function(id, config, dataSpace, cam){
 
 		with(dataSpace){
 			var dx = x.max() - x.min(), dy = y.max() - y.min();
-			xAxis.scale = renderScale(xAxis.paper, x.min(), dx, false);
-			yAxis.scale = renderScale(yAxis.paper, y.min(), dy, true);
+			xAxis.scale = renderScale(xAxis.paper, false);
+			yAxis.scale = renderScale(yAxis.paper, true);
 		} 
 	});
 
@@ -411,6 +411,7 @@ var QuadBackground = function(id, config){
 		var xTitle = paper.text(hw - 42, parentHeight() - 30, config.axes.x.title)
 			.attr('fill', '#a1c800')
 			.attr('font-family', QUAD_FONT)
+			.attr('font-weight', 'bold')
 			.attr('font-size', 20);
 
 		// key
@@ -827,6 +828,31 @@ var QuadData = function(config, onBoundsChanged){
 		if(boundsChanged) onBoundsChanged();
 	};
 //-----------------------------------------------------------------------------
+	var getSingular = function(point, tolerance){
+		var results = dataSpace.Get(point, tolerance);
+		
+		if(results.length > 1){
+			var nearest = -1, minDx = tolerance * 100, minDy = tolerance * 100;
+
+			for(var i = results.length; i--;){
+				var dx = Math.abs(results[i].X - point.x);
+				var dy = Math.abs(results[i].Y - point.y);
+
+				if(dx < minDx && dy < minDy){
+					minDy = dy;
+					minDx = dx;
+					nearest = i;
+				}
+			}
+
+			if(nearest >= 0 && minDx <= tolerance && minDy <= tolerance){
+				return results[i];
+			}
+		}
+
+		return results[0];
+	};
+//-----------------------------------------------------------------------------
 	var remove = function(data){
 
 	};
@@ -848,6 +874,7 @@ var QuadData = function(config, onBoundsChanged){
 	return {
 		add: add,
 		remove: remove,
+		getSingle: getSingular,
 		clear: clear,
 		onRender: function(callback){ return _onRenderCallbacks.add(callback); },
 		onBoundsChanged: function(callback){ return _onBoundsChangedCallbacks.add(callback); },
@@ -1275,25 +1302,29 @@ var QuadView = function(id, config, dataSpace, cam){
 		}
 
 		var hw = viewWidth() << 4, hh = viewHeight() << 4;
-		quadrants[0].title = paper.text(-hw + cx, -hh + cy, config.quadrants.title[0])
+		quadrants[0].title = paper.text(0, 0, config.quadrants.title[0])
 		   .click(goHome)
 		   .attr('font-family', QUAD_FONT)
 		   .attr('font-weight', 'bold')
+		   .attr('text-anchor', 'end')
 		   .attr('fill', config.quadrants.colors.text[0]);
-		quadrants[1].title = paper.text(hw + cx, -hh + cy, config.quadrants.title[1])
+		quadrants[1].title = paper.text(0, 0, config.quadrants.title[1])
 		   .click(goHome)
 		   .attr('font-family', QUAD_FONT)
 		   .attr('font-weight', 'bold')
+		   .attr('text-anchor', 'start')
 		   .attr('fill', config.quadrants.colors.text[1]);
-		quadrants[2].title = paper.text(hw + cx, hh + cy, config.quadrants.title[2])
+		quadrants[2].title = paper.text(0, 0, config.quadrants.title[2])
 		   .click(goHome)
 		   .attr('font-family', QUAD_FONT)
 		   .attr('font-weight', 'bold')
+		   .attr('text-anchor', 'start')
 		   .attr('fill', config.quadrants.colors.text[2]);
-		quadrants[3].title = paper.text(-hw + cx, hh + cy, config.quadrants.title[3])
+		quadrants[3].title = paper.text(0, 0, config.quadrants.title[3])
 		   .click(goHome)
 		   .attr('font-family', QUAD_FONT)
 		   .attr('font-weight', 'bold')
+		   .attr('text-anchor', 'end')
 		   .attr('fill', config.quadrants.colors.text[3]);
 
 		quadrants.colors = config.quadrants.colors;
@@ -1319,6 +1350,40 @@ var QuadView = function(id, config, dataSpace, cam){
 			paper.height / camera.zoom,
 			false
 		);
+
+		var center = {
+			x: paper.canvas.viewBox.baseVal.x + (paper.canvas.viewBox.baseVal.width >> 1),
+			y: paper.canvas.viewBox.baseVal.y + (paper.canvas.viewBox.baseVal.height >> 1)
+		};
+
+		for (var i = quadrants.length; i--;) {
+			var x, y, padding = 60;
+
+// 0  |  1
+//---------
+// 3  |  2
+
+			switch(i){
+				case 0: // relocate
+					x = center.x > origin[0] - padding ? origin[0] - padding : center.x;
+					y = center.y > origin[1] - padding ? origin[1] - padding : center.y;
+					break;
+				case 1: // retain
+					x = center.x < origin[0] + padding ? origin[0] + padding : center.x;
+					y = center.y > origin[1] - padding ? origin[1] - padding : center.y;
+					break;
+				case 2: // replace
+					x = center.x < origin[0] + padding ? origin[0] + padding : center.x;
+					y = center.y < origin[1] + padding ? origin[1] + padding : center.y;
+					break;
+				case 3:
+					x = (center.x > origin[0] - padding) ? origin[0] - padding : center.x;
+					y = center.y < origin[1] + padding ? origin[1] + padding : center.y;
+					break;
+			}
+
+			quadrants[i].title.transform(I(3).translate([x, y]).serialize('svg'));
+		};
 	};
 //-----------------------------------------------------------------------------
 	var setOrigin = function(point){
@@ -1344,9 +1409,6 @@ var QuadView = function(id, config, dataSpace, cam){
 			quadrants[i].attr({
 				x: offsets.quad[i][0], y: offsets.quad[i][1],
 				width: parentWidth(), height: parentHeight()
-			});
-			quadrants[i].title.attr({
-				x: offsets.text[i][0], y: offsets.text[i][1]
 			});
 		}
 
@@ -1391,6 +1453,10 @@ function SpatialTable(cellSize){
         var t = this;
 	t.Max = {x: null, y: null};
 	t.Min = {x: null, y: null};
+
+        (1).__proto__.near = function(n, bias){
+                return Math.abs(this - n) <= bias;
+        };
 
         var hash = function(point){
                 var x = Math.floor(point.x / cellSize);

@@ -225,13 +225,24 @@ var QuadData = function(config, onBoundsChanged){
 	var getSingular = function(point, tolerance){
 		var results = dataSpace.Get(point, tolerance);
 		
-		if(results.length > 1)
+		if(results.length > 1){
+			var nearest = -1, minDx = tolerance * 100, minDy = tolerance * 100;
+
 			for(var i = results.length; i--;){
-				if(results[i].Utilization.near(point.x, tolerance) &&
-				   results[i].CostPerHour.near(point.y, tolerance)){
-					return results[i];
+				var dx = Math.abs(results[i].X - point.x);
+				var dy = Math.abs(results[i].Y - point.y);
+
+				if(dx < minDx && dy < minDy){
+					minDy = dy;
+					minDx = dx;
+					nearest = i;
 				}
 			}
+
+			if(nearest >= 0 && minDx <= tolerance && minDy <= tolerance){
+				return results[i];
+			}
+		}
 
 		return results[0];
 	};
