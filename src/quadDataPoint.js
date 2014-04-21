@@ -55,6 +55,10 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 			             .attr('font-weight', 'bold')
 			             .attr('font-size', '4px')
 			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
+			             .click(function(){
+			             	window.location.origin = '/asset/' + point.Serial + '/summry';
+			             	window.location.reload();
+			             })
 			);
 
 			info.push(paper.text(x + 2, y + 10, 'Utilization     ' + Math.ceil(point.X) + '%')
