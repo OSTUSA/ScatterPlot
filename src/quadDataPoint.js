@@ -56,7 +56,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 			             .attr('font-size', '4px')
 			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
 			             .click(function(){
-			             	window.location ='/asset/' + point.Serial + '/summary';
+			             	window.location ='/asset/' + point.Id + '/summary';
 			             })
 			);
 

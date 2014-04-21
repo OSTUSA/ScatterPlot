@@ -220,7 +220,6 @@ var QuadView = function(id, config, dataSpace, cam){
 
 		for(var i = data.length; i--;){
 			var qi = data[i].viewable.reassign();
-			console.log(qi, data[i]);
 			++quadrantPopulations[qi];
 			dataSpace.quadrants[qi].push(data[i]);
 		}
