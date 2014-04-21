@@ -6,6 +6,7 @@ var QuadData = function(config, onBoundsChanged){
 //                                       
 	var _onRenderCallbacks = new ll(), _onBoundsChangedCallbacks = new ll();
 	var dataSpace = new SpatialTable(5);
+	var quadrants = [];
 	var allData = [];
 	var hoods = [];
 	var hoodRadius = config.hoodRadius;
@@ -267,6 +268,7 @@ var QuadData = function(config, onBoundsChanged){
 	};
 //-----------------------------------------------------------------------------
 	add(config.data);
+	for(var i = 4; i--;) quadrants.push([]);
 
 	return {
 		add: add,
@@ -287,6 +289,7 @@ var QuadData = function(config, onBoundsChanged){
 		median: function(){ return median; },
 		standardDeviation: function(){ return standardDeviation; },
 		allData:  function(){ return allData; },
-		allHoods: function(){ return hoods; }
+		allHoods: function(){ return hoods; },
+		quadrants: quadrants
 	};
 }

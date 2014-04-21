@@ -72,22 +72,22 @@ var QuadView = function(id, config, dataSpace, cam){
 			switch(i){
 				case 0:
 					within = function(point){
-						return point[0] < origin[0] && point[1] < origin[1]
+						return point[0] <= origin[0] && point[1] <= origin[1]
 					}
 					break;
 				case 1:
 					within = function(point){
-						return point[0] > origin[0] && point[1] < origin[1]
+						return point[0] >= origin[0] && point[1] <= origin[1]
 					}
 					break;
 				case 2:
 					within = function(point){
-						return point[0] > origin[0] && point[1] > origin[1]
+						return point[0] >= origin[0] && point[1] >= origin[1]
 					}
 					break;
 				case 3:
 					within = function(point){
-						return point[0] < origin[0] && point[1] > origin[1]
+						return point[0] <= origin[0] && point[1] >= origin[1]
 					}
 					break;
 			}
@@ -212,8 +212,17 @@ var QuadView = function(id, config, dataSpace, cam){
 		var data = dataSpace.allData();
 		quadrantPopulations = [0, 0, 0, 0];
 		origin = [cx, cy];
+
+		// empty out the quadrants
+		for(var i = 4; i--;)
+			while(dataSpace.quadrants[i].length)
+				dataSpace.quadrants[i].pop();
+
 		for(var i = data.length; i--;){
-			++quadrantPopulations[data[i].viewable.reassign()];
+			var qi = data[i].viewable.reassign();
+			console.log(qi, data[i]);
+			++quadrantPopulations[qi];
+			dataSpace.quadrants[qi].push(data[i]);
 		}
 
 		var hoods = dataSpace.allHoods();

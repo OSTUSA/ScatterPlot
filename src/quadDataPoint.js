@@ -137,7 +137,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 //-----------------------------------------------------------------------------
 	var reassign = function(){
 		var quadIndex = inQuadrant([point.X, point.Y]);
-		if(!element)
+		if(!element || quadIndex < 0)
 			console.log('Oh no...');
 		element.attr('fill', quadrants.colors.dataFill[quadIndex]);
 
