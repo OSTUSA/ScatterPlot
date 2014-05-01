@@ -25,7 +25,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 		}
 
 		info.show = function(){
-			var x = 0, y = 0, s = 5 / cam.zoom, bb;
+			var x = 0, y = 0, s = 5 / cam.zoom, bb, bb2;
 			var tri = 'M'+x+','+y+'l-2,4l,4,0';
 			x -= 50;
 			y += 4;
@@ -55,18 +55,18 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 				.attr('text-anchor', 'start')
 				.attr('font-weight', 'bold')
 				.attr('font-size', '4px')
-				.transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
 			);
 
 			bb = info.peek().getBBox();
-			info.push(link = paper.text(x + 2 + bb.width / s, y + 3, point.Serial)
+			info.peek().transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y);
+
+			info.push(link = paper.text(x + 2 + bb.width, y + 3, point.Serial)
 				.attr('fill', '#bbb')
 				.attr('font-family', QUAD_FONT)
 				.attr('text-anchor', 'start')
 				.attr('font-weight', 'bold')
 				.attr('font-size', '4px')
 				.attr('cursor', 'pointer')
-				.transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
 				.hover(
 					function(){ with(link){
 						attr('fill', '#fff');
@@ -82,7 +82,10 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 				})
 			);
 
-			info.push(paper.rect(x + 2 + bb.width / s, y + 5, info.peek().getBBox().width / s, 1 / s)
+			bb2 = info.peek().getBBox();
+			info.peek().transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
+
+			info.push(paper.rect(x + 2 + bb.width, y + 5, bb2.width, 1 / s)
 				.attr('fill', '#bbb')
 				.attr('stroke-width', 0)
 				.transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
