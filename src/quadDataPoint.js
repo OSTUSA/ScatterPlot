@@ -25,7 +25,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 		}
 
 		info.show = function(){
-			var x = 0, y = 0, s = 5 / cam.zoom;
+			var x = 0, y = 0, s = 5 / cam.zoom, bb;
 			var tri = 'M'+x+','+y+'l-2,4l,4,0';
 			x -= 50;
 			y += 4;
@@ -41,24 +41,53 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 			                'l0,-10';
 
 			info.push(paper.path(tri + rectangle + 'Z')
-			             .attr('fill', '#000')
-             		     .attr('font-family', QUAD_FONT)
-			             .attr('font-weight', 'bold')
-			             .attr('opacity', 0.5)
-			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
+				.attr('fill', '#000')
+				.attr('font-family', QUAD_FONT)
+				.attr('font-weight', 'bold')
+				.attr('opacity', 0.5)
+				.transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
 			);
 
-			info.push(paper.text(x + 2, y + 3, 'Asset Serial # ' + point.Serial)
-			             .attr('fill', '#fff')
-             		     .attr('font-family', QUAD_FONT)
-			             .attr('text-anchor', 'start')
-			             .attr('font-weight', 'bold')
-			             .attr('font-size', '4px')
-			             .transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
-			             .click(function(){
-			             	window.location ='/asset/' + point.Id + '/summary';
-			             })
+
+			info.push(paper.text(x + 2, y + 3, 'Asset Serial # ')
+				.attr('fill', '#fff')
+				.attr('font-family', QUAD_FONT)
+				.attr('text-anchor', 'start')
+				.attr('font-weight', 'bold')
+				.attr('font-size', '4px')
+				.transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
 			);
+
+			bb = info.peek().getBBox();
+			info.push(link = paper.text(x + 2 + bb.width / s, y + 3, point.Serial)
+				.attr('fill', '#bbb')
+				.attr('font-family', QUAD_FONT)
+				.attr('text-anchor', 'start')
+				.attr('font-weight', 'bold')
+				.attr('font-size', '4px')
+				.attr('cursor', 'pointer')
+				.transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
+				.hover(
+					function(){ with(link){
+						attr('fill', '#fff');
+						underline.attr('fill', '#fff')
+					}}, // In handeler
+					function(){ with(link){
+						attr('fill', '#bbb');
+						underline.attr('fill', '#bbb');
+					}}  // Out handeler
+				)
+				.click(function(){
+					window.location ='/asset/' + point.Id + '/summary';
+				})
+			);
+
+			info.push(paper.rect(x + 2 + bb.width / s, y + 5, info.peek().getBBox().width / s, 1 / s)
+				.attr('fill', '#bbb')
+				.attr('stroke-width', 0)
+				.transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
+			);
+			link.underline = info.peek();
 
 			info.push(paper.text(x + 2, y + 10, 'Utilization     ' + Math.ceil(point.X) + '%')
 			             .attr('fill', '#fff')

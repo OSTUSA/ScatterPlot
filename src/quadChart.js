@@ -1,3 +1,6 @@
+// augment the array a bit
+([]).__proto__.peek = function(){ return this[this.length - 1] };
+
 function aprFls(){
 	return (new Date()).getDate()==1 && (new Date()).getMonth()==3;
 }
