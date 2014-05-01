@@ -60,7 +60,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 			bb = info.peek().getBBox();
 			info.peek().transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y);
 
-			info.push(link = paper.text(x + 2 + bb.width, y + 3, point.Serial)
+			info.push(link = paper.text(x + 5 + bb.width, y + 3, point.Serial)
 				.attr('fill', '#bbb')
 				.attr('font-family', QUAD_FONT)
 				.attr('text-anchor', 'start')
@@ -85,7 +85,7 @@ var QuadDataPoint = function(point, paper, quadrants, cam){
 			bb2 = info.peek().getBBox();
 			info.peek().transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
 
-			info.push(paper.rect(x + 2 + bb.width, y + 5, bb2.width, 1 / s)
+			info.push(paper.rect(x + 5 + bb.width, y + 5, bb2.width, 1 / s)
 				.attr('fill', '#bbb')
 				.attr('stroke-width', 0)
 				.transform('M' + s + ',0, 0,' + s + ',' + point.X + ',' + point.Y)
